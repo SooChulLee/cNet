@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="code">
+	<!-- 코드 목록 -->
+	<select id="selectCodeList" parameterType="string" resultType="map">
+		select comm_code,code_name
+		from tbl_code WITH(NOLOCK)
+		where parent_code = #{_parent_code}
+			and code_depth=2
+			and use_yn='1'
+		order by order_no asc
+	</select>
+	<!-- 코드 목록 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (comm_code+'^'+parent_code) row_id
+			, comm_code,parent_code,code_name,code_depth,isnull(code_etc,'') code_etc,order_no,use_yn
+			, (case code_depth when 1 then '상위코드 없음' else (select code_name from tbl_code WITH(NOLOCK) where comm_code=A.parent_code) end) parent_name
+		from tbl_code A WITH(NOLOCK)
+		where 1=1
+		<if test='parent_code!=null and parent_code!=""'>
+			and parent_code = #{parent_code}
+		</if>
+		<if test='code_depth!=null and code_depth!=""'>
+			and code_depth = #{code_depth}
+		</if>
+		<if test='use_yn!=null and use_yn!=""'>
+			and use_yn = #{use_yn}
+		</if>
+		order by parent_code asc, order_no asc
+	</select>
+	<!-- 코드 등록 -->
+	<insert id="insertCode" parameterType="map">
+		insert into tbl_code (comm_code,parent_code,code_name,code_depth,code_etc,order_no,use_yn)
+		select #{comm_code}
+			, (case '${parent_code}' when '_parent' then '${comm_code}' else '${parent_code}' end)
+			, #{code_name}
+			, (case '${parent_code}' when '_parent' then 1 else 2 end)
+			, #{code_etc}
+			, (isnull(max(order_no),0)+1)
+			, #{use_yn}
+		from tbl_code WITH(NOLOCK)
+		where parent_code=#{parent_code}
+	</insert>
+	<!-- 코드 업데이트 -->
+	<update id="updateCode" parameterType="map">
+		update tbl_code
+		<set>
+			<if test='code_name!=null and code_name!=""'>code_name=#{code_name},</if>
+			<if test='code_etc!=null'>code_etc=#{code_etc},</if>
+			<if test='order_no!=null and order_no!=""'>order_no=#{order_no},</if>
+			<if test='use_yn!=null and use_yn!=""'>use_yn=#{use_yn},</if>
+		</set>
+		where comm_code=#{comm_code} and parent_code=#{parent_code}
+	</update>
+	<!-- 코드 삭제 (하위 코드가 없는 경우만 삭제됨) -->
+	<delete id="deleteCode" parameterType="map">
+		delete from tbl_code
+		where comm_code=#{comm_code} and parent_code=#{parent_code} and (
+			select top 1 comm_code from tbl_code A WITH(NOLOCK) where A.parent_cod e= tbl_code.comm_code and A.code_depth = tbl_code.code_depth+1
+		) is null
+	</delete>
+</mapper>

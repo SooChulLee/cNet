@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC "-//mybatis.org//DTD Config 3.0//EN" "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+	 <settings>
+		<setting name="cacheEnabled" value="true" />
+		<setting name="lazyLoadingEnabled" value="true" />
+		<setting name="useGeneratedKeys" value="true" />
+		<setting name="defaultExecutorType" value="SIMPLE" />
+		<setting name="defaultStatementTimeout" value="3000" />
+	</settings>
+	
+	 <!--
+	<settings>
+		<setting name="cacheEnabled"                value="true"/>
+		<setting name="aggressiveLazyLoading"       value="false"/>
+		<setting name="lazyLoadingEnabled"          value="true"/>
+		<setting name="multipleResultSetsEnabled"   value="true"/>
+		<setting name="useColumnLabel"              value="true"/>
+		<setting name="useGeneratedKeys"            value="false"/>
+		<setting name="defaultExecutorType"         value="SIMPLE"/>
+		<setting name="defaultStatementTimeout"     value="25000"/>
+		<setting name="callSettersOnNulls"          value="true"/>
+		<setting name="logImpl"                     value="LOG4J"/>
+	</settings>
+	-->
+
+ 	<!-- 환경 설정 -->
+	<environments default="crec">
+		<!-- main db -->
+		<environment id="crec">
+			<transactionManager type="JDBC"/>
+			<!-- 데이터베이스 접속 정보 -->
+			<dataSource type="JNDI">
+				<property name="initial_context" value="java:comp/env"/>
+				<property name="data_source" value="jdbc/crec"/>
+			</dataSource>
+		</environment>
+		<!-- backup db -->
+		<environment id="crec_bak">
+			<transactionManager type="JDBC"/>
+			<!-- 데이터베이스 접속 정보 -->
+			<dataSource type="JNDI">
+				<property name="initial_context" value="java:comp/env"/>
+				<property name="data_source" value="jdbc/crec_bak"/>
+			</dataSource>
+		</environment>
+	</environments>
+
+	<!-- SQLMAPPER (environments 하단에 위치한다.) -->
+	<mappers>
+		<mapper resource="sqlmap/db_dual.xml"/>
+		<mapper resource="sqlmap/login.xml"/>
+		<mapper resource="sqlmap/layout.xml"/>
+
+		<mapper resource="sqlmap/manage/menu.xml"/>
+		<mapper resource="sqlmap/manage/user.xml"/>
+		<mapper resource="sqlmap/manage/user_group.xml"/>
+		<mapper resource="sqlmap/manage/system.xml"/>
+		<mapper resource="sqlmap/manage/channel.xml"/>
+		<mapper resource="sqlmap/manage/search_config.xml"/>
+		<mapper resource="sqlmap/manage/business.xml"/>
+		<mapper resource="sqlmap/manage/code.xml"/>
+
+		<mapper resource="sqlmap/rec_search/rec_search.xml"/>
+		<mapper resource="sqlmap/rec_search/rec_memo.xml"/>
+		<mapper resource="sqlmap/rec_search/rec_marking.xml"/>
+		<mapper resource="sqlmap/rec_search/mon_db.xml"/>
+		<mapper resource="sqlmap/rec_search/hist_softphone.xml"/>
+
+		<mapper resource="sqlmap/log_hist/hist_login.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_listen.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_down.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_rlisten.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_user_change.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_pass_change.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_abort.xml"/>
+		<mapper resource="sqlmap/log_hist/hist_excel.xml"/>
+
+		<mapper resource="sqlmap/sheet/cate.xml"/>
+		<mapper resource="sqlmap/sheet/item.xml"/>
+		<mapper resource="sqlmap/sheet/sheet.xml"/>
+
+		<mapper resource="sqlmap/eval/event.xml"/>
+		<mapper resource="sqlmap/eval/eval_target.xml"/>
+		<mapper resource="sqlmap/eval/eval_result.xml"/>
+		<mapper resource="sqlmap/eval/eval_claim.xml"/>
+		<mapper resource="sqlmap/eval/eval_rec_search.xml"/>
+
+		<mapper resource="sqlmap/statistics/stat_system.xml"/>
+		<mapper resource="sqlmap/statistics/stat_user_dept.xml"/>
+
+		<mapper resource="sqlmap/statistics/stat_event.xml"/>
+		<mapper resource="sqlmap/statistics/stat_user.xml"/>
+		<mapper resource="sqlmap/statistics/stat_dept.xml"/>
+
+		<mapper resource="sqlmap/dashboard/dashboard.xml"/>
+	</mappers>
+</configuration>

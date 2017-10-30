@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="db_dual">
+	<!-- 반대편 DB 장애여부 확인 -->
+	<select id="getObstacleDbCnt" resultType="int">
+		select count(*) cnt
+		from tbl_obstacle_db
+		where db_repair_yn='n'
+	</select>
+
+	<!-- 반대편 DB 장애 입력 -->
+	<insert id="insertObstacleDb" parameterType="map">
+		<selectKey resultType="int" keyProperty="obsDbCnt" order="BEFORE">
+			select count(*) obsDbCnt from tbl_obstacle_db where db_repair_yn='n'
+		</selectKey>
+		<if test='obsDbCnt==0'>
+			insert into tbl_obstacle_db(db_raise_time, db_repair_yn, db_repair_time)
+			values (#{db_raise_time}, 'n', null)
+		</if>
+		<if test='obsDbCnt!=0'>
+			update tbl_obstacle_db set db_repair_yn='' where 1=0
+		</if>
+	</insert>
+	
+	<!-- 반대편 DB 장애 완료 처리 : 미사용 (프로시저에서 사용) -->
+	<update id="updateObstacleDbRepairEnd" parameterType="String">
+		update tbl_obstacle_db
+		set db_repair_yn='y', db_repair_time = #{db_repair_time}
+		where db_repair_yn='n'
+	</update>
+
+	<!-- 반대편 DB 장애로그 처리완료여부 확인 (cnt==0 : 처리완료)-->
+	<select id="getObstacleLogCnt" resultType="int">
+		select count(*) cnt
+		from tbl_obstacle
+		where repair_yn='n'
+	</select>
+
+	<!-- 장애로그 입력 : 장애시간(웹서버 시간 :: 두 DB의 시간이 다를 수 있으므로 ), 쿼리문 입력 -->
+	<select id="insertObstacleLog" parameterType="map" resultType="int">
+		insert into tbl_obstacle(raise_time, obs_query)
+		values (convert(datetime, #{raise_time}), #{sql})
+	</select>
+
+	<!-- 테스트 -->
+	<insert id="test" parameterType="String">
+		<selectKey resultType="string" keyProperty="sheet_code" order="BEFORE">
+			select replicate('0',4-len(sheet_code)) + cast(sheet_code as varchar) sheet_code
+			from (
+				select (isnull(max(cast(sheet_code as int)),0)+1) sheet_code
+				from tbl_eval_sheet WITH(NOLOCK)
+			) U
+		</selectKey>
+		insert into z_test(f2) values (#{sheet_code}+' :: '+isNull(#{arg},''))
+	</insert>
+</mapper>

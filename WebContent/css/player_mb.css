@@ -1,0 +1,433 @@
+/*player speed 버튼*/
+.btn-speed {
+	background-color: #17191c;
+	/*border-color: #23c6c8;*/
+	color: #888888;
+	font-size:11px ! important;
+	padding: 3px 10px;
+	margin-top:2px;
+}
+
+.btn-speed:hover,
+.btn-speed:focus,
+.btn-speed:active,
+.btn-speed.active{
+	background-color: #17191c;
+	/*border-color: #21b9bb;*/
+	color: #FFFFFF;
+}
+
+.btn-speed:active,
+.btn-speed.active{
+	background-image: none;
+}
+
+
+/*speed dropdown메뉴*/ 
+.ibox-tools {
+	display: inline-block;
+	float: right;
+	margin-top: 0;
+	position: relative;
+	padding: 0;
+}
+
+.dropdown-menu {
+  position: absolute;
+  right: 0px;
+  z-index: 1000;
+  display: none;
+  float: left;
+  min-width: 58px;
+  font-size: 11px; 
+  text-align: left;
+  list-style: none;
+  background-color: #17191c;
+  border: medium none;
+  color: #888888;
+}
+
+.dropdown-menu > li > a {
+	color: inherit;
+	line-height: 0.1px !important;
+	text-align: left;
+	font-weight: normal;
+}
+
+.ibox-tools .dropdown-menu > li > a {
+	padding: 3px 10px !important;
+	font-size:11px !important;
+}
+
+.ibox-tools .dropdown-menu > li > a:hover,
+.ibox-tools .dropdown-menu > li > a:focus {
+	background-color:#33343f ! important;
+}
+
+
+/*play버튼 영역 ADD*/
+.jp-gui {
+	position:relative;
+	padding:11px;
+	width:534px;
+	height:60px;
+}
+
+.jp-gui.jp-no-volume {
+	width:360px;
+}
+.jp-gui ul {
+	margin:0;
+	padding:0;
+}
+
+.jp-gui ul li {
+	position:relative;
+	float:left;
+	list-style:none;
+	margin:2px;
+	padding:3px 0;
+	cursor:pointer;
+}
+
+.jp-gui ul li a {
+	margin:1px 5px;
+}
+
+.jp-gui li.jp-repeat,
+.jp-gui li.jp-repeat-off {
+	/*left:224px;*/
+}
+
+.jp-gui li.jp-mute,
+.jp-gui li.jp-unmute {
+	
+	top:-1px;		/*top:-2px;*/
+	left:204px;		/*left:225px;*/
+}
+
+.jp-gui li.jp-volume-max {
+	top:-1px;		/*top:-2px;*/
+	left:267px;		/*left:294px;*/
+}
+
+li.jp-pause,
+li.jp-repeat-off,
+li.jp-unmute,
+.jp-no-solution {
+	display:none;
+}
+
+.jp-progress-slider {
+	position:absolute;
+	top:9px;
+	left:140px;		/*left:81px;*/
+	width:178px;
+}
+
+.jp-volume-slider {
+	position:absolute;
+	top:1px;
+	left:347px;		/*left:343px;*/
+	width:74px;		/*width:70px;*/
+	height:.4em;
+}
+
+.jp-progress-slider .ui-slider-handle,
+.jp-volume-slider .ui-slider-handle {
+	border-radius : 12px;
+	/* Permalink - use to edit and share this gradient: http://colorzilla.com/gradient-editor/#8ea1ba+0,76869b+100 */
+	background: #8ea1ba; /* Old browsers */
+	background: -moz-radial-gradient(center, ellipse cover,  #8ea1ba 0%, #76869b 100%); /* FF3.6-15 */
+	background: -webkit-radial-gradient(center, ellipse cover,  #8ea1ba 0%,#76869b 100%); /* Chrome10-25,Safari5.1-6 */
+	background: radial-gradient(ellipse at center,  #8ea1ba 0%,#76869b 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+	filter: progid:DXImageTransform.Microsoft.gradient( startColorstr='#8ea1ba', endColorstr='#76869b',GradientType=1 ); 
+	/* IE6-9 fallback on horizontal gradient */
+}	
+
+.jp-gui.jp-no-volume .jp-volume-slider {
+	display:none;
+}
+
+.jp-current-time,
+.jp-duration {
+	position:absolute;
+	top:35px;
+	font-size:0.8em;
+	cursor:default;
+}
+
+.jp-current-time {
+	left:150px;		/*left:84px;*/
+}
+
+.jp-duration {
+	right:204px;	/*right:256px;*/
+}
+
+.jp-gui.jp-no-volume .jp-duration {
+	right:177px;
+}
+
+.jp-clearboth {
+	clear:both;
+}
+
+.jp-playpause {
+	margin: 0 !important;
+	padding: 0 !important;
+}
+
+/* Icons
+----------------------------------*/
+
+/* states and images */
+.ui-icon {
+	display: block;
+	text-indent: -99999px;
+	overflow: hidden;
+	background-repeat: no-repeat;
+}
+
+/* icon support */
+.ui-menu-icons {
+	position: relative;
+}
+.ui-menu-icons .ui-menu-item a {
+	position: relative;
+	padding-left: 2em;
+}
+
+/* left-aligned */
+.ui-menu .ui-icon {
+	position: absolute;
+	top: .2em;
+	left: .2em;
+}
+
+/* right-aligned */
+.ui-menu .ui-menu-icon {
+	position: static;
+	float: right;
+}
+.ui-progressbar {
+	height: 2em;
+	text-align: left;
+	overflow: hidden;
+}
+.ui-progressbar .ui-progressbar-value {
+	margin: -1px;
+	height: 100%;
+}
+.ui-progressbar .ui-progressbar-overlay {
+	background: url("./smoothness/images/animated-overlay.gif");
+	height: 100%;
+	filter: alpha(opacity=25);
+	opacity: 0.25;
+}
+.ui-progressbar-indeterminate .ui-progressbar-value {
+	background-image: none;
+}
+.ui-slider {
+	position: relative;
+	text-align: left;
+}
+.ui-slider .ui-slider-handle {
+	position: absolute;
+	z-index: 2;
+	width: 1.2em;
+	height: 1.2em;
+	cursor:pointer;
+
+}
+
+
+.ui-slider .ui-slider-range {
+	position: absolute;
+	z-index: 1;
+	font-size: .7em;
+	display: block;
+	border: 0;
+	background-position: 0 0;
+}
+
+/* For IE8 - See #6727 */
+.ui-slider.ui-state-disabled .ui-slider-handle,
+.ui-slider.ui-state-disabled .ui-slider-range {
+	filter: inherit;
+}
+
+.ui-slider-horizontal {
+	height: .6em;
+}
+
+/*슬라이드 영역*/
+.ui-slider-horizontal .ui-slider-handle {
+	top: -.3em;
+	margin-left: -.6em;	
+}
+
+.ui-slider-horizontal .ui-slider-range {
+	top: 0;
+	height: 100%;
+}
+.ui-slider-horizontal .ui-slider-range-min {
+	left: 0;
+}
+.ui-slider-horizontal .ui-slider-range-max {
+	right: 0;
+}
+
+
+/* Component containers
+----------------------------------*/
+.ui-widget {
+	font-family: Verdana,Arial,sans-serif;
+	font-size: 1.1em;
+	color:#fff;
+	background: #33343f;
+	border-radius : 0px 0px 3px 3px;
+}
+
+.ui-widget .ui-widget {
+	font-size: 1em;
+}
+
+.ui-widget input,
+.ui-widget select,
+.ui-widget textarea,
+.ui-widget button {
+	font-family: Verdana,Arial,sans-serif;
+	font-size: 1em;
+}
+
+.ui-widget-content {
+	background: #000;
+}
+
+.ui-widget-content a {
+	background: #000;
+}
+
+.ui-widget-header {
+	background: #5e6d81;
+	color: #222;
+	font-weight: bold;
+}
+
+.ui-widget-header a {
+	color: #222222;
+}
+
+/* Interaction states
+----------------------------------*/
+.ui-state-default,
+.ui-widget-header .ui-state-default {
+	background: #17191c;
+	font-weight: normal;
+	color: #fff;
+}
+
+.ui-state-default a,
+.ui-state-default a:link,
+.ui-state-default a:visited {
+	color: #555555;
+	text-decoration: none;
+}
+
+.ui-state-hover,
+.ui-widget-content .ui-state-hover,
+.ui-widget-header .ui-state-hover,
+.ui-state-focus,
+.ui-widget-content .ui-state-focus,
+.ui-widget-header .ui-state-focus {
+	font-weight: normal;
+	color: #fff;
+}
+
+.ui-state-hover a,
+.ui-state-hover a:hover,
+.ui-state-hover a:link,
+.ui-state-hover a:visited,
+.ui-state-focus a,
+.ui-state-focus a:hover,
+.ui-state-focus a:link,
+.ui-state-focus a:visited {
+	color: #fff;
+	text-decoration: none;
+}
+
+.ui-state-active,
+.ui-widget-content .ui-state-active,
+.ui-widget-header .ui-state-active {
+	font-weight: normal;
+	color: #fff;
+}
+
+.ui-state-active a,
+.ui-state-active a:link,
+.ui-state-active a:visited {
+	color: #fff;
+	text-decoration: none;
+}
+
+/* Icons
+----------------------------------*/
+
+/* states and images */
+.ui-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.ui-icon,
+.ui-widget-content .ui-icon {
+	background-image: url("./smoothness/images/ui-icons_888888_256x240.png");
+}
+
+.ui-state-hover .ui-icon,
+.ui-state-active .ui-icon,
+.ui-state-focus .ui-icon {
+	background-image: url("./smoothness/images/ui-icons_ffffff_256x240.png");
+}
+
+/* positioning */
+.ui-icon-refresh { background-position: -64px -80px; }
+.ui-icon-shuffle { background-position: -80px -80px; }
+.ui-icon-play { background-position: 0 -160px; }
+.ui-icon-pause { background-position: -16px -160px; }
+.ui-icon-stop { background-position: -96px -160px; }
+.ui-icon-volume-off { background-position: -128px -160px; }
+.ui-icon-volume-on { background-position: -144px -160px; }
+.ui-icon-pin-s { background-position: -144px -144px; }
+
+/* Misc visuals
+----------------------------------*/
+/* Corner radius */
+.ui-corner-all,
+.ui-corner-top,
+.ui-corner-left,
+.ui-corner-tl {
+	border-top-left-radius: 4px;
+}
+
+.ui-corner-all,
+.ui-corner-top,
+.ui-corner-right,
+.ui-corner-tr {
+	border-top-right-radius: 4px;
+}
+
+.ui-corner-all,
+.ui-corner-bottom,
+.ui-corner-left,
+.ui-corner-bl {
+	border-bottom-left-radius: 4px;
+}
+
+.ui-corner-all,
+.ui-corner-bottom,
+.ui-corner-right,
+.ui-corner-br {
+	border-bottom-right-radius: 4px;
+}

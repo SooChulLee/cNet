@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="login">
+	<!-- 사용자 잠금여부 체크 -->
+	<select id="selectLockCheck" parameterType="string" resultType="int">
+		select count(*) as lock_cnt		
+		from tbl_login_result WITH(NOLOCK)
+		where login_date=convert(varchar(10),getdate(),121) and login_id=#{login_id} and fail_cnt>=5
+	</select>
+	<!-- 사용자 아이디,비밀번호 체크 -->
+	<select id="selectLoginUser" parameterType="map" resultType="map">
+		select user_id, user_name, business_code, bpart_code, mpart_code, spart_code, user_level, eval_yn
+			, isnull(pass_expire_date,'') pass_expire_date, isnull(pass_upd_date,'') pass_upd_date
+			, convert(varchar(19),getdate(),121) login_datm
+			, dbo.fn_GetCodeName('USER_LEVEL',user_level) level_name
+			, isnull(user_ip,'') user_ip
+			, (case when login_chk_datm is not null then datediff(day, login_chk_datm, getdate()) else 0 end) login_check_day
+			, (case when pass_expire_date is not null then datediff(day, getdate(), cast(pass_expire_date as datetime)) else 0 end) pass_check_day		
+			, '' as down_ip	
+		from tbl_user WITH(NOLOCK)
+		where user_id=#{login_id} and user_pass=#{login_pass} and lock_yn='0' and resign_yn='0' and use_yn='1'	
+	</select>
+	<!-- 사용자 아이디,비밀번호 체크2 -->
+	<select id="selectUserPWD" parameterType="map" resultType="map">
+		select user_id, user_name			
+		from tbl_user WITH(NOLOCK)
+		where user_id=#{login_id}	
+	</select>	
+	<!-- 사용자 아이디,비밀번호 체크 -->
+	<select id="selectAutoLoginUser" parameterType="map" resultType="map">
+		select user_id, user_name, business_code, bpart_code, mpart_code, spart_code, user_level
+			, isnull(pass_expire_date,'') pass_expire_date, isnull(pass_upd_date,'') pass_upd_date
+			, convert(varchar(19),getdate(),121) login_datm
+			, dbo.fn_GetCodeName('USER_LEVEL',user_level) level_name
+			, isnull(user_ip,'') user_ip
+			, (case when login_chk_datm is not null then datediff(day, login_chk_datm, getdate()) else 0 end) login_check_day
+			, (case when pass_expire_date is not null then datediff(day, getdate(), cast(pass_expire_date as datetime)) else 0 end) pass_check_day			
+		from tbl_user WITH(NOLOCK)
+		where user_id=#{login_id} and lock_yn='0' and resign_yn='0' and use_yn='1'	
+	</select>	
+	<!-- 오늘 날짜 로그인 결과 데이터 존재 유무 체크 -->
+	<select id="selectCountLoginResult" parameterType="string" resultType="int">
+		select count(*) cnt from tbl_login_result WITH(NOLOCK) where login_date=convert(varchar(10),getdate(),121) and login_id=#{login_id}
+	</select>
+	<!-- 오늘 날짜 로그인 결과 신규 등록 -->
+	<insert id="insertLoginResult" parameterType="string">
+		insert into tbl_login_result (login_date, login_id, succ_cnt, fail_cnt)
+		values (convert(varchar(10),getdate(),121), #{login_id}, 0, 0)	
+	</insert>
+	<!-- 오늘 날짜 로그인 결과 업데이트 -->
+	<update id="updateLoginResult" parameterType="map">
+		update tbl_login_result
+		<set>
+			<if test='login_result=="1"'>succ_cnt=succ_cnt+1</if>
+			<if test='login_result=="0"'>fail_cnt=fail_cnt+1</if>
+		</set>
+		where login_date=convert(varchar(10),getdate(),121) and login_id=#{login_id}
+	</update>
+</mapper>

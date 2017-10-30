@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="user_group">
+	<!-- 해당하는 그룹 path 조회 -->
+	<select id="selectUserGroupPath" parameterType="map" resultType="string">
+		select (
+			(select business_name from tbl_business WITH(NOLOCK) where business_code=A.business_code)
+			+':'+(select part_name from tbl_user_group WITH(NOLOCK) where business_code=A.business_code and bpart_code=A.bpart_code and part_depth=1)
+			+':'+(select part_name from tbl_user_group WITH(NOLOCK) where business_code=A.business_code and bpart_code=A.bpart_code and mpart_code=A.mpart_code and part_depth=2)
+			+':'+A.part_name) part_path
+		from tbl_user_group A WITH(NOLOCK)
+		where A.business_code=#{business_code} and A.bpart_code=#{bpart_code} and A.mpart_code=#{mpart_code} and A.spart_code=#{spart_code}
+	</select>
+	<!-- 연관된 그룹 또는 사용자 존재유무 체크 -->
+	<select id="selectRelationUserGroup" parameterType="map" resultType="int">
+		select sum(cnt) cnt
+		from (
+			select count(*) cnt
+			<choose>
+				<when test='bpart_code!=_default_code and mpart_code==_default_code and spart_code==_default_code'>
+					from tbl_user_group WITH(NOLOCK)
+					where bpart_code=#{bpart_code} and part_depth=2
+				</when>
+				<when test='bpart_code!=_default_code and mpart_code!=_default_code and spart_code==_default_code'>
+					from tbl_user_group WITH(NOLOCK)
+					where bpart_code=#{bpart_code} and mpart_code=#{mpart_code} and part_depth=3
+				</when>
+				<when test='bpart_code!=_default_code and mpart_code!=_default_code and spart_code!=_default_code'>
+					from tbl_user_group A WITH(NOLOCK) inner join tbl_user B WITH(NOLOCK)
+						on A.bpart_code=A.bpart_code and A.mpart_code=B.mpart_code and A.spart_code=B.spart_code
+					where A.bpart_code=#{bpart_code} and A.mpart_code=#{mpart_code} and A.spart_code=#{spart_code}
+				</when>
+			</choose>
+		) U
+	</select>
+
+	<!-- 사용자 그룹 목록 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (bpart_code+mpart_code+spart_code) row_id
+			, bpart_code,mpart_code,spart_code,part_depth,part_name,delete_day,isnull(part_etc,'') part_etc,use_yn
+		<if test='part_depth!=null and part_depth!=""'>
+			<choose>
+				<when test='part_depth=="1"'>, bpart_code as part_code</when>
+				<when test='part_depth=="2"'>, mpart_code as part_code</when>
+				<when test='part_depth=="3"'>, spart_code as part_code</when>
+			</choose>
+		</if>
+		from tbl_user_group WITH(NOLOCK)
+		where 1=1
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='bpart_code!=null and bpart_code!=""'>
+			and bpart_code=#{bpart_code}
+		</if>
+		<if test='mpart_code!=null and mpart_code!=""'>
+			and mpart_code=#{mpart_code}
+		</if>
+		<if test='spart_code!=null and spart_code!=""'>
+			and spart_code=#{spart_code}
+		</if>
+		<if test='part_depth!=null and part_depth!=""'>
+			and part_depth=#{part_depth}
+		</if>
+		<if test='_user_level!=null and _user_level!="" and _user_level>"A"'>
+			<choose>
+				<!-- <when test='_user_level=="B"'>
+					and (
+						bpart_code=#{_bpart_code}
+					)
+				</when>	 -->
+				<when test='_user_level=="C"'>
+					and (
+						(bpart_code=#{_bpart_code} and mpart_code=#{_default_code} and spart_code=#{_default_code}) or
+						(bpart_code=#{_bpart_code} and mpart_code=#{_mpart_code})
+					)
+				</when>
+				<when test='_user_level>="D"'>
+					and (
+						(bpart_code=#{_bpart_code} and mpart_code=#{_default_code} and spart_code=#{_default_code}) or
+						(bpart_code=#{_bpart_code} and mpart_code=#{_mpart_code} and spart_code=#{_default_code}) or
+						(bpart_code=#{_bpart_code} and mpart_code=#{_mpart_code} and spart_code=#{_spart_code})
+					)
+				</when>
+			</choose>
+		</if>
+		order by row_id asc
+	</select>
+
+	<!-- 사용자 그룹 등록 -->
+	<insert id="insertUserGroup" parameterType="map">
+		insert into tbl_user_group (business_code,bpart_code,mpart_code,spart_code,part_depth,part_name,delete_day,use_yn)
+		select top 1 #{business_code},
+		<if test='part_depth!=null and part_depth!=""'>
+			<choose>
+				<when test='part_depth=="1"'>#{part_code},</when>
+				<otherwise>#{bpart_code},</otherwise>
+			</choose>
+			<choose>
+				<when test='part_depth=="1"'>'${_default_code}',</when>
+				<when test='part_depth=="2"'>#{part_code},</when>
+				<otherwise>#{mpart_code},</otherwise>
+			</choose>
+			<choose>
+				<when test='part_depth=="3"'>#{part_code},</when>
+				<otherwise>'${_default_code}',</otherwise>
+			</choose>
+		</if>
+			#{part_depth},
+			#{part_name},
+			#{delete_day},
+			'1'
+		from tbl_user_group WITH(NOLOCK)
+		where (
+				select count(*) from tbl_user_group WITH(NOLOCK)
+				where business_code=#{business_code} and
+				<choose>
+					<when test='part_depth=="1"'>bpart_code=#{part_code}</when>
+					<when test='part_depth=="2"'>mpart_code=#{part_code}</when>
+					<when test='part_depth=="3"'>spart_code=#{part_code}</when>
+				</choose>
+			) <![CDATA[<]]> 1
+	</insert>
+
+	<insert id="insertUserGroupAuto" parameterType="map">
+		insert into tbl_user_group (business_code,bpart_code,mpart_code,spart_code,part_depth,part_name,use_yn)
+			select #{business_code},
+			<if test='part_depth!=null and part_depth!=""'>
+				<choose>
+					<when test='part_depth=="1"'>(isnull(max(bpart_code),0)+cast('1'+substring('${_default_code}',1,len('${_default_code}')-1) as int)),</when>
+					<otherwise>#{bpart_code},</otherwise>
+				</choose>
+				<choose>
+					<when test='part_depth=="1"'>'${_default_code}',</when>
+					<when test='part_depth=="2"'>(isnull(max(mpart_code),#{bpart_code})+100),</when>
+					<otherwise>#{mpart_code},</otherwise>
+				</choose>
+				<choose>
+					<when test='part_depth=="3"'>(isnull(max(spart_code),#{mpart_code})+1),</when>
+					<otherwise>'${_default_code}',</otherwise>
+				</choose>
+			</if>
+				#{part_depth},
+				#{part_name},
+				'1'
+			from tbl_user_group WITH(NOLOCK)
+			where business_code=#{business_code} and part_depth=#{part_depth}
+			<if test='bpart_code!=null and bpart_code!=""'>
+				and bpart_code=#{bpart_code}
+			</if>
+			<if test='mpart_code!=null and mpart_code!=""'>
+				and mpart_code=#{mpart_code}
+			</if>
+	</insert>
+
+	<!-- 사용자 그룹 업데이트 -->
+	<update id="updateUserGroup" parameterType="map">
+		update tbl_user_group set part_name=#{part_name}
+		<if test='delete_day!=null and delete_day!=""'>
+			, delete_day=#{delete_day}
+		</if>
+		where bpart_code=#{bpart_code} and mpart_code=#{mpart_code} and spart_code=#{spart_code}
+	</update>
+
+	<!-- 사용자 그룹 삭제 -->
+	<delete id="deleteUserGroup" parameterType="map">
+		delete from tbl_user_group
+		where bpart_code=#{bpart_code} and mpart_code=#{mpart_code} and spart_code=#{spart_code}
+	</delete>
+
+	<!-- 사용자 조직도 목록 조회 -->
+	<select id="selectPartCode" parameterType="map" resultType="map">
+		select (bpart_code+mpart_code+spart_code) row_id
+			, bpart_code,mpart_code,spart_code,part_depth,part_name,isnull(part_etc,'') part_etc,use_yn
+		<choose>
+			<when test='part_depth=="1"'>, bpart_code as part_code</when>
+			<when test='part_depth=="2"'>, mpart_code as part_code</when>
+			<when test='part_depth>="3"'>, spart_code as part_code</when>
+		</choose>
+		from tbl_user_group WITH(NOLOCK)
+		where use_yn='1'
+			and business_code=#{business_code}
+			and part_depth=#{part_depth}
+			<if test='(part_depth>1 and bpart_code!=null and bpart_code!="") or _user_level>"A"'>
+				and bpart_code=#{bpart_code}
+			</if>
+			<if test='(part_depth>2 and mpart_code!=null and mpart_code!="") or (_user_level>"B" and part_depth>=2)'>
+				and mpart_code=#{mpart_code}
+			</if>
+			<if test='(part_depth>3 and spart_code!=null and spart_code!="") or (_user_level>"C" and part_depth>=3)'>
+				and spart_code=#{spart_code}
+			</if>
+		order by row_id asc
+	</select>
+
+</mapper>

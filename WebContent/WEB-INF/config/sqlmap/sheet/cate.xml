@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cate">
+	<!-- 카테고리 tree -->
+	<select id="selectCateTree" parameterType="map" resultType="map">
+		select cate_code as id
+			, parent_code as parent
+			, cate_name as text
+			,('depth'+convert(varchar,cate_depth)) as type
+		from (
+			select cate_code, '#' parent_code, cate_name, cate_depth
+			from tbl_eval_cate WITH(NOLOCK)
+			where cate_depth=1
+			<if test='use_yn!=null and use_yn!=""'>
+				and use_yn=#{use_yn}
+			</if>
+			union all
+			select B.cate_code, B.parent_code, B.cate_name, B.cate_depth
+			from tbl_eval_cate A WITH(NOLOCK) inner join tbl_eval_cate B WITH(NOLOCK)
+				on A.cate_code=B.parent_code
+			where A.cate_depth=1
+				and B.cate_depth=2
+			<if test='use_yn!=null and use_yn!=""'>
+				and A.use_yn=#{use_yn}
+				and B.use_yn=#{use_yn}
+			</if>
+		) U
+		where 1=1
+		<if test='cate_codes!=null and cate_codes!=""'>
+			and cate_code in (${cate_codes})
+		</if>
+		order by cate_code asc
+	</select>
+	<select id="selectCateTreeOld" parameterType="map" resultType="map">
+		select cate_code as id
+			, (case cate_depth when 1 then '#' else parent_code end) as parent
+			, cate_name as text
+			,('depth'+convert(varchar,cate_depth)) as type
+		from tbl_eval_cate WITH(NOLOCK)
+		where 1=1
+		<if test='cate_codes!=null and cate_codes!=""'>
+			and cate_code in (${cate_codes})
+		</if>
+		<if test='use_yn!=null and use_yn!=""'>
+			and use_yn=#{use_yn}
+		</if>
+		order by cate_code asc
+	</select>
+	<!-- 카테고리 조회 -->
+	<select id="selectItem" parameterType="string" resultType="map">
+		select parent_code,cate_name,cate_depth,isnull(cate_desc,'') cate_desc,isnull(cate_etc,'') cate_etc,order_no,use_yn
+		from tbl_eval_cate WITH(NOLOCK)
+		where cate_code=#{cate_code}
+	</select>
+	<!-- 카테고리 목록 -->
+	<select id="selectCateList" parameterType="map" resultType="map">
+		select cate_code,parent_code,cate_name,cate_depth
+		from tbl_eval_cate WITH(NOLOCK)
+		where 1=1
+		<if test='parent_code!=null and parent_code!=""'>
+			and parent_code = #{parent_code}
+		</if>
+		<if test='cate_depth!=null and cate_depth!=""'>
+			and cate_depth = #{cate_depth}
+		</if>
+		<if test='use_yn!=null and use_yn!=""'>
+			and use_yn=#{use_yn}
+		</if>
+		order by cate_code asc
+	</select>
+	<!-- 카테고리 목록 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select cate_code,parent_code,cate_name,cate_depth,isnull(cate_desc,'') cate_desc,isnull(cate_etc,'') cate_etc,order_no,use_yn
+			, (case cate_depth when 1 then '상위 카테고리 없음' else (select cate_name from tbl_eval_cate WITH(NOLOCK) where cate_code=A.parent_code) end) parent_name
+		from tbl_eval_cate A WITH(NOLOCK)
+		where 1=1
+		<if test='parent_code!=null and parent_code!=""'>
+			and parent_code = #{parent_code}
+		</if>
+		<if test='cate_depth!=null and cate_depth!=""'>
+			and cate_depth = #{cate_depth}
+		</if>
+		<if test='use_yn!=null and use_yn!=""'>
+			and use_yn = #{use_yn}
+		</if>
+		order by cate_code asc
+	</select>
+	<!-- 카테고리 등록 -->
+	<insert id="insertCate" parameterType="map">
+		insert into tbl_eval_cate (cate_code,parent_code,cate_name,cate_depth,cate_desc,cate_etc,order_no,use_yn)
+		select cate_code
+			, (case '${parent_code}' when '_parent' then cate_code else '${parent_code}' end)
+			, #{cate_name}
+			, (case '${parent_code}' when '_parent' then 1 else 2 end)
+			, #{cate_desc}, #{cate_etc}
+			, cate_code
+			, #{use_yn}
+		from (
+			select
+				case '${parent_code}' when '_parent' then (
+					select (case when isnull(max(cate_code),0)=0 then '1000' else max(cate_code)+100 end)
+					from tbl_eval_cate WITH(NOLOCK)
+					where cate_depth=1
+				) else (
+					select isnull(max(cate_code),'${parent_code}')+1
+					from tbl_eval_cate WITH(NOLOCK)
+					where parent_code=#{parent_code} and cate_depth=2
+				) end as cate_code
+		) U
+	</insert>
+	<!-- 카테고리 업데이트 -->
+	<update id="updateCate" parameterType="map">
+		update tbl_eval_cate
+		<set>
+			<if test='cate_name!=null and cate_name!=""'>cate_name=#{cate_name},</if>
+			<if test='cate_desc!=null'>cate_desc=#{cate_desc},</if>
+			<if test='cate_etc!=null'>cate_etc=#{cate_etc},</if>
+			<if test='order_no!=null and order_no!=""'>order_no=#{order_no},</if>
+			<if test='use_yn!=null and use_yn!=""'>use_yn=#{use_yn},</if>
+		</set>
+		where cate_code=#{cate_code}
+	</update>
+	<!-- 카테고리 삭제 (하위 카테고리가 없는 경우만 삭제됨) -->
+	<delete id="deleteCate" parameterType="map">
+		delete from tbl_eval_cate
+		where cate_code=#{cate_code} and (
+			select top 1 cate_code from tbl_eval_cate A WITH(NOLOCK)
+			where A.parent_code = tbl_eval_cate.cate_code and A.cate_depth = tbl_eval_cate.cate_depth+1
+		) is null
+	</delete>
+</mapper>

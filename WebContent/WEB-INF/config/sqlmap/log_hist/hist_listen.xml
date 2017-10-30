@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hist_listen">
+	<!-- 청취 이력 count -->
+	<select id="selectCount" parameterType="map" resultType="map">
+		select count(*) as tot_cnt, CEILING(CAST(COUNT(*) as float) / ${top_cnt}) as page_cnt
+		from tbl_listen_hist WITH(NOLOCK)
+		where listen_datm between convert(datetime, #{listen_date1} + ' 00:00:00.000') and convert(datetime, #{listen_date2} + ' 23:59:59.997')
+		<if test='listen_id!=null and listen_id!=""'>
+			and listen_id like #{listen_id} + '%'
+		</if>
+		<if test='listen_name!=null and listen_name!=""'>
+			and listen_name like #{listen_name} + '%'
+		</if>
+		<if test='rec_date1!=null and rec_date1!="" and rec_date2!=null and rec_date2!=""'>
+			and rec_datm between convert(datetime, #{rec_date1} + ' 00:00:00.000') and convert(datetime, #{rec_date2} + ' 23:59:59.997')
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id like #{user_id} + '%'
+		</if>
+		<if test='user_name!=null and user_name!=""'>
+			and user_name like #{user_name} + '%'
+		</if>
+		<if test='reason_code!=null and reason_code!=""'>
+			and reason_code like #{reason_code} + '%'
+		</if>
+	</select>
+	<!-- 청취 이력 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (${tot_cnt}-rownum+1) idx, *
+		from (
+			select top ${end_cnt}
+				ROW_NUMBER() OVER(order by ${sort_idx} ${sort_dir}) as rownum
+				, convert(varchar(19),listen_datm,121) listen_datm
+				, a.listen_id
+				, a.listen_name
+				, a.listen_ip
+				, convert(varchar(19),a.rec_datm,121) rec_datm
+				, a.rec_keycode
+				, a.rec_filename
+				, a.user_id
+				, a.user_name
+				, a.local_no
+				, 'link' as v_url
+				, isnull(a.reason_code,'') reason_code
+				, isnull(a.reason_text,'') reason_text
+				, (case when isnull(a.reason_code,'')!='' then dbo.fn_GetCodeName('LD_REASON',a.reason_code) else '' end) reason_code_desc
+				, (select part_name from tbl_user_group where part_depth=1 and bpart_code = b.bpart_code) as bpart_name
+				, (select part_name from tbl_user_group where part_depth=2 and bpart_code = b.bpart_code and mpart_code = b.mpart_code) as mpart_name
+				, (select part_name from tbl_user_group where part_depth=3 and bpart_code = b.bpart_code and mpart_code = b.mpart_code and spart_code = b.spart_code) as spart_name
+			from tbl_listen_hist as a WITH(NOLOCK)
+				 left join tbl_user as b WITH(NOLOCK) on a.listen_id=b.user_id
+			where a.listen_datm between convert(datetime, #{listen_date1} + ' 00:00:00.000') and convert(datetime, #{listen_date2} + ' 23:59:59.997')
+			<if test='listen_id!=null and listen_id!=""'>
+				and a.listen_id like #{listen_id} + '%'
+			</if>
+			<if test='listen_name!=null and listen_name!=""'>
+				and a.listen_name like #{listen_name} + '%'
+			</if>
+			<if test='rec_date1!=null and rec_date1!="" and rec_date2!=null and rec_date2!=""'>
+				and a.rec_datm between convert(datetime, #{rec_date1} + ' 00:00:00.000') and convert(datetime, #{rec_date2} + ' 23:59:59.997')
+			</if>
+			<if test='user_id!=null and user_id!=""'>
+				and a.user_id like #{user_id} + '%'
+			</if>
+			<if test='user_name!=null and user_name!=""'>
+				and a.user_name like #{user_name} + '%'
+			</if>
+			<if test='reason_code!=null and reason_code!=""'>
+				and a.reason_code like #{reason_code} + '%'
+			</if>
+			order by ${sort_idx} ${sort_dir}
+		) U
+		where rownum between ${start_cnt} and ${end_cnt}
+	</select>
+	<!-- 청취 이력 전체 조회 (엑셀다운로드) -->
+	<select id="selectListAll" parameterType="map" resultType="map">
+		select convert(varchar(19),a.listen_datm,121) listen_datm
+			, a.listen_id
+			, a.listen_name
+			, a.listen_ip
+			, convert(varchar(19),a.rec_datm,121) rec_datm
+			, a.rec_keycode
+			, a.rec_filename
+			, a.user_id
+			, a.user_name
+			, a.local_no
+			, isnull(a.reason_code,'') reason_code
+			, isnull(a.reason_text,'') reason_text
+			, (case when isnull(a.reason_code,'')!='' then dbo.fn_GetCodeName('LD_REASON',a.reason_code) else '' end) reason_code_desc
+			, (select part_name from tbl_user_group where part_depth=1 and bpart_code = b.bpart_code) as bpart_name
+			, (select part_name from tbl_user_group where part_depth=2 and bpart_code = b.bpart_code and mpart_code = b.mpart_code) as mpart_name
+			, (select part_name from tbl_user_group where part_depth=3 and bpart_code = b.bpart_code and mpart_code = b.mpart_code and spart_code = b.spart_code) as spart_name
+		from tbl_listen_hist as a WITH(NOLOCK)
+			 left join tbl_user as b WITH(NOLOCK) on a.listen_id=b.user_id
+		where listen_datm between convert(datetime, #{listen_date1} + ' 00:00:00.000') and convert(datetime, #{listen_date2} + ' 23:59:59.997')
+		<if test='listen_id!=null and listen_id!=""'>
+			and a.listen_id like #{listen_id} + '%'
+		</if>
+		<if test='listen_name!=null and listen_name!=""'>
+			and a.listen_name like #{listen_name} + '%'
+		</if>
+		<if test='rec_date1!=null and rec_date1!="" and rec_date2!=null and rec_date2!=""'>
+			and a.rec_datm between convert(datetime, #{rec_date1} + ' 00:00:00.000') and convert(datetime, #{rec_date2} + ' 23:59:59.997')
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and a.user_id like #{user_id} + '%'
+		</if>
+		<if test='user_name!=null and user_name!=""'>
+			and a.user_name like #{user_name} + '%'
+		</if>
+		<if test='reason_code!=null and reason_code!=""'>
+			and a.reason_code like #{reason_code} + '%'
+		</if>
+		order by ${sort_idx} ${sort_dir}
+	</select>
+	<!-- 청취 이력 저장 -->
+	<insert id="insertListenHist" parameterType="map">
+		insert into tbl_listen_hist (listen_datm,listen_id,listen_name,listen_ip,rec_datm,rec_keycode,rec_filename,user_id,user_name,local_no,reason_code,reason_text,listen_src)
+		values (getdate(),#{login_id},#{login_name},#{listen_ip},#{rec_datm},#{rec_keycode},#{rec_filename},#{user_id},#{user_name},#{local_no},#{reason_code},#{reason_text},#{listen_src})
+	</insert>
+</mapper>

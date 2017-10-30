@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="eval_target">
+	<!-- 배정상담원 단일조회 -->
+	<select id="selectItem" parameterType="string" resultType="map">
+		select user_name, eval_cnt, eval_status
+		from tbl_eval_event_agent_list WITH(NOLOCK)
+		where user_id=#{user_id} and eval_user_id=#{eval_user_id}
+	</select>
+
+	<!-- 평가대상자관리 > 가용상담원조회 -->
+	<select id="selectAvailList" parameterType="map" resultType="map">
+		select A.user_id, A.user_name, A.local_no, A.bpart_code, A.mpart_code, A.spart_code
+			, J1.part_name bpart_name, J2.part_name mpart_name, J3.part_name spart_name
+		from tbl_user A WITH(NOLOCK), tbl_user_group J1 WITH(NOLOCK), tbl_user_group J2 WITH(NOLOCK), tbl_user_group J3 WITH(NOLOCK)
+		where A.eval_yn='n' and A.user_id not in (select user_id from tbl_eval_event_agent_list EA WITH(NOLOCK))
+			and A.bpart_code=J1.bpart_code and J1.part_depth=1
+			and A.bpart_code=J2.bpart_code and A.mpart_code=J2.mpart_code and J2.part_depth=2
+			and A.bpart_code=J3.bpart_code and A.mpart_code=J3.mpart_code and A.spart_code=J3.spart_code and J3.part_depth=3
+			--and a.user_id like 'C410%' <!--개발 : 이수철-->
+			<if test='bpart_code!=null and bpart_code!=""'>
+				and A.bpart_code=#{bpart_code}
+			</if>
+			<if test='mpart_code!=null and mpart_code!=""'>
+				and A.mpart_code=#{mpart_code}
+			</if>
+			<if test='spart_code!=null and spart_code!=""'>
+				and A.spart_code=#{spart_code}
+			</if>
+		order by A.bpart_code, A.mpart_code, A.spart_code, A.user_name asc
+	</select>
+
+	<!-- 평가대상자관리 > 배정상담원조회 -->
+	<select id="selectAssignList" parameterType="map" resultType="map">
+		select A.user_id, A.user_name, A.local_no, A.bpart_code, A.mpart_code, A.spart_code
+			, J1.part_name bpart_name, J2.part_name mpart_name, J3.part_name spart_name
+			, isNull(E.eval_status,'x') eval_status
+		from tbl_user A WITH(NOLOCK)
+			left outer join tbl_eval_event_result_list E on E.event_code=#{event_code} and A.user_id=E.user_id and E.eval_order=#{eval_order}
+			, tbl_eval_event_agent_list D WITH(NOLOCK)
+			, tbl_user_group J1 WITH(NOLOCK), tbl_user_group J2 WITH(NOLOCK), tbl_user_group J3 WITH(NOLOCK)
+		where A.eval_yn='n'
+			and A.bpart_code=J1.bpart_code and J1.part_depth=1
+			and A.bpart_code=J2.bpart_code and A.mpart_code=J2.mpart_code and J2.part_depth=2
+			and A.bpart_code=J3.bpart_code and A.mpart_code=J3.mpart_code and A.spart_code=J3.spart_code and J3.part_depth=3
+			and A.user_id=D.user_id and D.eval_user_id=#{eval_user_id}
+			<if test='user_name!=null and user_name!=""'>
+				and A.user_name like #{user_name} + '%'
+			</if>
+			<if test='_user_level!=null and _user_level!="" and _user_level>"B"'>
+				<choose>
+					<when test='_user_level=="E"'>
+						and D.eval_user_id=#{_eval_user_id}
+					</when>
+				</choose>
+			</if>
+		order by A.bpart_code, A.mpart_code, A.spart_code, A.user_name asc
+	</select>
+
+	<!-- 상담원 배정 (기존 데이터가 없을 경우만 입력) -->
+	<insert id="insertEventAgentList" parameterType="map">
+		insert into tbl_eval_event_agent_list (user_id,eval_user_id,eval_user_name,user_name,bpart_code,bpart_name,mpart_code,mpart_name,spart_code,spart_name,local_no,eval_cnt,eval_status,regi_datm,regi_ip,regi_id)
+			select top 1 A.user_id, #{eval_user_id}, #{eval_user_name}
+				, A.user_name, A.bpart_code, B.part_name bpart_name, A.mpart_code, C.part_name mpart_name, A.spart_code, D.part_name spart_name, A.local_no
+				, 0, '0', getdate(), #{regi_ip}, #{regi_id}
+			from tbl_user A WITH(NOLOCK), tbl_user_group B WITH(NOLOCK), tbl_user_group C WITH(NOLOCK), tbl_user_group D WITH(NOLOCK)
+			where A.user_id=#{user_id}
+				and A.bpart_code=B.bpart_code and B.part_depth=1
+				and A.bpart_code=C.bpart_code and A.mpart_code=C.mpart_code and C.part_depth=2
+				and A.bpart_code=D.bpart_code and A.mpart_code=D.mpart_code and A.spart_code=D.spart_code and D.part_depth=3
+				and (select top 1 user_id from tbl_eval_event_agent_list WITH(NOLOCK) where user_id=#{user_id} and eval_user_id=#{eval_user_id}) is null
+	</insert>
+
+	<!-- 평가결과를 배정상담원 테이블에 업데이트 : 이벤트별 배정기능을 없앴으므로 사용 안함 함 -->
+	<!--
+	<update id="updateEventAgentList" parameterType="map">
+		update tbl_eval_event_agent_list
+		<set>
+			<if test='eval_status!=null and eval_status!=""'>eval_status=#{eval_status},</if>
+			<if test='eval_cnt_plus!=null and eval_cnt_plus!=""'>eval_cnt=eval_cnt+1,</if>
+			<if test='eval_cnt_minus!=null and eval_cnt_minus!=""'>eval_cnt=eval_cnt-1,</if>
+		</set>
+		where user_id=#{user_id} and eval_user_id=#{eval_user_id}
+	</update>
+	-->
+
+	<!-- 평가대상자관리 > 배정상담원 : 삭제 -->
+	<delete id="deleteEventAgentList" parameterType="map">
+		delete from tbl_eval_event_agent_list
+		where user_id=#{user_id} and eval_user_id=#{eval_user_id}
+	</delete>
+</mapper>

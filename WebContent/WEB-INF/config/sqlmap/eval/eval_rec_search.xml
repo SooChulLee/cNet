@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="eval_rec_search">
+	<!-- 녹취정보 조회 -->
+	<select id="selectItem" parameterType="map" resultType="map">
+		select top 1 rec_seq
+			, convert(varchar(19),rec_datm,121) as rec_datm
+			, rec_date
+			, convert(varchar(8),rec_start_time,108) as rec_start_time
+			, convert(varchar(8),rec_end_time,108) as rec_end_time
+			, convert(varchar(8),rec_call_time,108) as rec_call_time
+			, system_code, business_code
+			, local_no, channel_no, rec_keycode, rec_inout, rec_filename, user_id, user_name
+			, bpart_code, bpart_name, mpart_code, mpart_name, spart_code, spart_name
+			, isnull(cust_id,'') cust_id, isnull(cust_name,'') cust_name, isnull(cust_tel,'') cust_tel, isnull(cust_jumin,'') cust_jumin
+			, custom_fld_04 as guideTel, web_url
+		from tbl_record WITH(NOLOCK)
+		where 1=1
+		<if test='rec_seq!=null and rec_seq!=""'>
+			and rec_seq = #{rec_seq}
+		</if>
+		<if test='rec_date!=null and rec_date!=""'>
+			and rec_date = #{rec_date}
+		</if>
+		<if test='local_no!=null and local_no!=""'>
+			and local_no = #{local_no}
+		</if>
+		<if test='rec_keycode!=null and rec_keycode!=""'>
+			and rec_keycode = #{rec_keycode}
+		</if>
+		<if test='rec_filename!=null and rec_filename!=""'>
+			and rec_filename = #{rec_filename}
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id = #{user_id}
+		</if>
+	</select>
+
+	<!-- 녹취이력 count -->
+	<select id="selectCount" parameterType="map" resultType="map">
+		select count(*) as tot_cnt, CEILING(CAST(COUNT(*) as float) / ${top_cnt}) as page_cnt
+		from tbl_record A WITH(NOLOCK)
+		where rec_datm between convert(datetime, #{rec_date1} + ' 00:00:00.000') and convert(datetime, #{rec_date2} + ' 23:59:59.997')
+			and rec_start_time between #{rec_start_time1} and #{rec_start_time2}
+			and rec_call_time between #{rec_call_time1} and #{rec_call_time2}
+			<if test='user_id!=null and user_id!=""'>
+				and user_id = #{user_id}
+			</if>
+			<if test='cust_name!=null and cust_name!=""'>
+				and cust_name like #{cust_name} + '%'
+			</if>
+	</select>
+
+	<!-- 녹취이력 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (${tot_cnt}-rownum+1) idx, *
+		from (
+			select top ${end_cnt}
+				ROW_NUMBER() OVER(order by ${sortMethod}) as rownum
+				, A.rec_seq, A.custom_fld_04
+				, convert(varchar(19),A.rec_datm,121) as rec_datm
+				, A.rec_date
+				, convert(varchar(8),A.rec_start_time,108) as rec_start_time
+				, convert(varchar(8),A.rec_end_time,108) as rec_end_time
+				, convert(varchar(8),A.rec_call_time,108) as rec_call_time
+				, A.system_code, A.business_code
+				, A.local_no,A.channel_no,A.rec_keycode,A.rec_inout,A.rec_filename,A.user_id,A.user_name
+				, isnull(A.cust_id,'') cust_id,isnull(A.cust_name,'') cust_name, isnull(A.cust_tel,'') cust_tel, isnull(A.cust_jumin,'') cust_jumin
+				, A.web_url, isNull(B.eval_status,'x') eval_status, isNull(B.eval_order,'0') eval_order
+			from tbl_record A WITH(NOLOCK) left outer join tbl_eval_event_result_list B WITH(NOLOCK)
+				on A.rec_seq=B.rec_seq and B.event_code=#{event_code} and B.eval_user_id=#{_eval_user_id}
+			where A.rec_datm between convert(datetime, #{rec_date1} + ' 00:00:00.000') and convert(datetime, #{rec_date2} + ' 23:59:59.997')
+				and A.rec_start_time between #{rec_start_time1} and #{rec_start_time2}
+				and A.rec_call_time between #{rec_call_time1} and #{rec_call_time2}
+				<if test='user_id!=null and user_id!=""'>
+					and A.user_id = #{user_id}
+				</if>
+				<if test='cust_name!=null and cust_name!=""'>
+					and A.cust_name like #{cust_name} + '%'
+				</if>
+		) U
+		where rownum between ${start_cnt} and ${end_cnt}
+	</select>
+
+	<!-- 녹취이력 전체 조회 : 사용안됨 -->
+	<select id="selectListAll" parameterType="map" resultType="map">
+		select rec_seq
+			, convert(varchar(19),rec_datm,121) as rec_datm
+			, rec_date
+			, convert(varchar(8),rec_start_time,108) as rec_start_time
+			, convert(varchar(8),rec_end_time,108) as rec_end_time
+			, convert(varchar(8),rec_call_time,108) as rec_call_time
+			, system_code, business_code
+			, local_no,channel_no,rec_keycode,rec_inout,rec_filename,user_id,user_name
+			, isnull(cust_id,'') cust_id,isnull(cust_name,'') cust_name,isnull(cust_tel,'') cust_tel,isnull(cust_jumin,'') cust_jumin
+			, web_url
+		<if test='_eval_user_id!=null and _eval_user_id!=""'>
+			, (select count(*) from tbl_eval_event_result_list WITH(NOLOCK)
+				<!-- where event_code=#{event_code} and eval_user_id=#{_eval_user_id} and rec_seq=A.rec_seq and rec_datm=A.rec_datm and rec_filename=A.rec_filename :: 아래처럼 rec_seq 하나의 조건으로 모두 만족 됨 -->
+				where event_code=#{event_code} and eval_user_id=#{_eval_user_id} and rec_seq=A.rec_seq
+			  ) eval_cnt
+		</if>
+		from tbl_record A WITH(NOLOCK)
+		where rec_datm between convert(datetime, #{rec_date1} + ' 00:00:00.000') and convert(datetime, #{rec_date2} + ' 23:59:59.997')
+			and rec_start_time between #{rec_start_time1} and #{rec_start_time2}
+			and rec_call_time between #{rec_call_time1} and #{rec_call_time2}
+			<if test='user_id!=null and user_id!=""'>
+				and user_id = #{user_id}
+			</if>
+			<if test='cust_name!=null and cust_name!=""'>
+				and cust_name like #{cust_name} + '%'
+			</if>
+		order by rec_datm asc, rec_start_time asc
+	</select>
+</mapper>

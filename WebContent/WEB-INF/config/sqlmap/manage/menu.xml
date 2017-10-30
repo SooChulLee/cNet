@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="menu">
+	<!-- 접근가능한 메뉴정보 조회 (로그인) -->
+	<select id="selectMenuPerm" parameterType="map" resultType="map">
+		select menu_code,parent_code,menu_name,menu_depth,menu_url,menu_icon,isnull(menu_etc,'') menu_etc
+		from tbl_menu WITH(NOLOCK)
+		where business_code=#{business_code}
+		<![CDATA[
+			and user_level>=#{user_level}
+		]]>
+			and use_yn='1'
+		order by order_no asc
+	</select>
+	<!-- 메뉴 목록 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (business_code+menu_code) row_id
+			, business_code,menu_code,user_level,parent_code,menu_name,menu_depth,menu_url,menu_icon,isnull(menu_etc,'') menu_etc,order_no,use_yn
+			, (select business_name from tbl_business WITH(NOLOCK) where business_code=A.business_code) business_name
+			, (case menu_depth when 1 then '없음' else (select menu_name from tbl_menu WITH(NOLOCK) where business_code=A.business_code and menu_code=A.parent_code) end) parent_name
+			, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+		from tbl_menu A WITH(NOLOCK)
+		where 1=1
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='parent_code!=null and parent_code!=""'>
+			and parent_code=#{parent_code}
+		</if>
+		<if test='menu_depth!=null and menu_depth!=""'>
+			and menu_depth = #{menu_depth}
+		</if>
+		<if test='user_level!=null and user_level!=""'>
+			<![CDATA[
+			and user_level>=#{user_level}
+			]]>
+		</if>
+		<if test='use_yn!=null and use_yn!=""'>
+			and use_yn = #{use_yn}
+		</if>
+		order by business_code asc, order_no asc
+	</select>
+	<!-- 메뉴 등록 -->
+	<insert id="insertMenu" parameterType="map">
+		insert into tbl_menu (business_code,menu_code,user_level,parent_code,menu_name,menu_depth,menu_url,menu_icon,menu_etc,order_no,use_yn)
+		select #{business_code}, menu_code, #{user_level}
+			, (case '${parent_code}' when '_parent' then menu_code else '${parent_code}' end)
+			, #{menu_name}
+			, (case '${parent_code}' when '_parent' then 1 else 2 end)
+			, #{menu_url}, #{menu_icon}, #{menu_etc}
+			, (left(menu_code,1)+right(menu_code,2))
+			, #{use_yn}
+		from (
+			<choose>
+				<when test='parent_code=="_parent"'>
+					select (isnull(max(menu_code),0)+1000) menu_code
+					from tbl_menu WITH(NOLOCK)
+					where business_code=#{business_code} and menu_depth=1
+				</when>
+				<otherwise>
+					select (isnull(max(menu_code),'${parent_code}')+1) menu_code
+					from tbl_menu WITH(NOLOCK)
+					where business_code=#{business_code} and parent_code=#{parent_code} and menu_depth=2
+				</otherwise>
+			</choose>
+		) U
+	</insert>
+	<!-- 메뉴 업데이트 -->
+	<update id="updateMenu" parameterType="map">
+		update tbl_menu
+		<set>
+			<if test='user_level!=null and user_level!=""'>user_level=#{user_level},</if>
+			<if test='menu_name!=null and menu_name!=""'>menu_name=#{menu_name},</if>
+			<if test='menu_url!=null and menu_url!=""'>menu_url=#{menu_url},</if>
+			<if test='menu_icon!=null and menu_icon!=""'>menu_icon=#{menu_icon},</if>
+			<if test='menu_etc!=null'>menu_etc=#{menu_etc},</if>
+			<if test='order_no!=null and order_no!=""'>order_no=#{order_no},</if>
+			<if test='use_yn!=null and use_yn!=""'>use_yn=#{use_yn},</if>
+		</set>
+		where business_code=#{business_code} and menu_code=#{menu_code}
+	</update>
+	<!-- 메뉴 삭제 (하위 메뉴가 없는 경우만 삭제됨) -->
+	<delete id="deleteMenu" parameterType="map">
+		delete from tbl_menu
+		where business_code=#{business_code} and menu_code=#{menu_code} and (
+			select top 1 menu_code from tbl_menu A WITH(NOLOCK) where A.parent_code = tbl_menu.menu_code and A.menu_depth = tbl_menu.menu_depth+1
+		) is null
+	</delete>
+</mapper>

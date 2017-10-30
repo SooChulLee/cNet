@@ -1,0 +1,32 @@
+<object width='100%' height='45' id='player' name='player' classid='CLSID:6BF52A52-394A-11D3-B153-00C04F79FAA6' codebase='http://activex.microsoft.com/activex/controls/mplayer/en/nsmp2inf.cab#Version=5,1,52,701' standby='Loading Microsoft Windows Media Player components...' type='application/x-wav'>
+	<param name='url' value='http://localhost/test/wav/20161219142443_122139.wav' />
+	<param name='AutoSize' value='true' />
+	<param name='AutoStart' value='false' />
+	<param name='Balance' value='0' />
+	<param name='CurrentMarker' value='0' />
+	<param name='CurrentPosition' value='0' />	
+	<param name='DisplaySize' value='0' />
+	<param name='EnableContextMenu' value='false' />
+	<param name='Enabled' value='true' />
+	<param name='InvokeURLs' value='true' />
+	<param name='Mute' value='false' />
+	<param name='PlayCount' value='0' />
+	<param name='Rate' value='1.0' />
+	<param name='ShowAudioControls' value='true' />
+	<param name='ShowControls' value='true' />
+	<param name='ShowDisplay' value='false' />
+	<param name='ShowStatusBar' value='false' />
+	<param name='ShowTracker' value='false' />
+	<param name='StretchToFit' value='true' />
+	<param name='TransparentAtStart' value='false' />
+	<param name='Volume' value='100' />
+</object>	
+<script>
+player.onended = function () {
+	alert("³¡³µ´Ù")
+}
+player.onclick = function () {
+	alert()
+}
+
+</script>

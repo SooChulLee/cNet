@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="eval_claim">
+	<!-- 이의신청 등록  -->
+	<insert id="insertEvalResultClaim" parameterType="map">
+		<selectKey resultType="int" keyProperty="claim_seq" order="BEFORE">
+			select isNull(max(claim_seq),0)+1 from tbl_eval_event_result_claim WITH(NOLOCK) where result_seq=#{result_seq}
+		</selectKey>
+
+		insert into tbl_eval_event_result_claim(result_seq,claim_seq,claim_contents,claim_user_id,claim_datm,claim_ip,claim_status)
+		values (#{result_seq},#{claim_seq},#{claim_contents},#{claim_user_id},getdate(),#{_clientIp},#{claim_status})
+	</insert>
+
+	<!-- 이의신청된 내용 처리시(접수자가 접수/반려, 평가자가 접수/반려) 이의신청 테이블 업데이트 -->
+	<update id="updateEvalResultClaim" parameterType="map">
+		update tbl_eval_event_result_claim
+		<set>
+			 claim_status=#{claim_status}
+			,proc_contents=#{proc_contents}
+			<if test='recv_user_id!=null and recv_user_id!=""'>,recv_user_id=#{recv_user_id},recv_datm=getDate()</if>
+			<if test='proc_user_id!=null and proc_user_id!=""'>,proc_user_id=#{proc_user_id},proc_datm=getDate()</if>
+		</set>
+		<!-- 상태값이 아래로 떨이 질 수 없다. -->
+		<![CDATA[
+		where result_seq = #{result_seq} and claim_seq = #{claim_seq} and claim_status < #{claim_status}
+		]]>
+	</update>
+
+	<!-- 이의대기/이의신청/이의처리 시 평가테이블 상태값 수정  -->
+	<update id="updateEvalResultByClaim" parameterType="map">
+		update tbl_eval_event_result_list
+		<set>
+			eval_status=#{eval_status}
+			<if test='eval_status=="a"'>,claim_cnt=claim_cnt+1</if>
+		</set>
+		where result_seq = #{result_seq}
+			<if test='eval_status=="a"'><!-- 완료(9) -> 이의대기(a) -->
+		 		and eval_status='9'
+	 		</if>
+			<if test='eval_status=="d"'><!-- 이의대기(a) -> 이의신청(d) -->
+		 		and eval_status='a'
+	 		</if>
+			<if test='eval_status=="9"'><!-- 이의처리시 : 이의대기(a), 이의신청(d) -> 완료(9) -->
+		 		and eval_status in ('9','a','d')
+	 		</if>
+	</update>
+
+	<select id="selectList" parameterType="map" resultType="map">
+		select result_seq, claim_seq, claim_contents, proc_contents, claim_status
+			, convert(varchar(16),c.claim_datm,121) claim_datm, convert(varchar(16),c.recv_datm,121) recv_datm, convert(varchar(16),c.proc_datm,121) proc_datm
+			, uc.user_name claim_user_name, ur.user_name recv_user_name, up.user_name  proc_user_name
+		from tbl_eval_event_result_claim c WITH(NOLOCK)
+			left outer join tbl_user uc WITH(NOLOCK) on c.claim_user_id=uc.user_id
+			left outer join tbl_user ur WITH(NOLOCK) on c.recv_user_id=ur.user_id
+			left outer join tbl_user up WITH(NOLOCK) on c.proc_user_id=up.user_id
+		where c.result_seq=#{result_seq}
+		order by c.claim_seq asc
+	</select>
+</mapper>

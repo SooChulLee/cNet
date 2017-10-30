@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="stat_system">
+	<!-- 시스템 통계 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select * 
+		from (
+			select rec_date,
+				<choose>			
+					<when test='s.date_type=="DD"'>
+						left(rec_date,4) + '-' + substring(rec_date,5,2) + '-' + right(rec_date,2)
+					</when>
+					<when test='s.date_type=="MM"'>
+						left(rec_date,4) + '-' + right(rec_date,2)
+					</when>
+					<when test='s.date_type=="YY"'>
+						rec_date
+					</when>										
+					<when test='s.date_type=="HH"'>
+						rec_date + '시'
+					</when>
+					<when test='s.date_type=="WW"'>
+						substring(rec_date,1,4) + '-' + substring(rec_date,5,2) + ' ' + right(rec_date,1) + '주차'
+					</when>
+					<when test='s.date_type=="WD"'>
+						case rec_date when '6' then '일'
+									  when '5' then '월'
+									  when '4' then '화'
+									  when '3' then '수'
+									  when '2' then '목'
+									  when '1' then '금'
+									  when '0' then '토'
+									  else 'X'
+					  	end
+					</when>				
+				</choose> 		
+				  as v_rec_date,
+				system_code,
+				(select system_name from tbl_system WITH(NOLOCK) where system_code=A.system_code) system_name,
+				sum(tot_cnt) tot_cnt,
+				sum(tot_call_time) tot_call_time,
+				sum(in_cnt) in_cnt,
+				sum(out_cnt) out_cnt,
+				sum(local_cnt) local_cnt
+			from (
+				select
+				<choose>	
+					<when test='s.date_type=="DD"'>
+						rec_date
+					</when>
+					<when test='s.date_type=="MM"'>
+						substring(rec_date,1,6)
+					</when>	
+					<when test='s.date_type=="YY"'>
+						substring(rec_date,1,4)
+					</when>				
+					<when test='s.date_type=="HH"'>
+						rec_hour
+					</when>
+					<when test='s.date_type=="WW"'>
+						substring(rec_date,1,6)+cast(DATEPART(ww,rec_date)-DATEPART(ww,substring(rec_date,1,6)+'01')+1 as varchar)
+					</when>	
+					<when test='s.date_type=="WD"'>
+						7-DATEPART(dw,rec_date)
+					</when>														
+				</choose> 
+					  as rec_date,
+					system_code,
+					tot_cnt,
+					tot_call_time,
+					in_cnt,
+					out_cnt,
+					local_cnt
+				from tbl_stat_system WITH(NOLOCK)
+				where rec_date between #{s.rec_date1} and #{s.rec_date2}				
+					and rec_hour between #{s.rec_hour1} and #{s.rec_hour2}
+				<if test='s.system_code!=null and s.system_code!=""'>
+					and system_code=#{s.system_code}
+				</if>
+			) A
+			group by rec_date, system_code		
+		) U
+		order by
+		<foreach collection='o' index='idx' item='item' open='' close='' separator=','>
+			${idx} ${item}
+		</foreach>								
+	</select>	
+</mapper>

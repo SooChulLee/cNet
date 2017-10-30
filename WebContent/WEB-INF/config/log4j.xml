@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE log4j:configuration PUBLIC "-//APACHE//DTD LOG4J 1.2//EN" "log4j.dtd">
+<log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+	<!-- Level can be ALL, DEBUG, INFO, WARN, ERROR, FATAL, OFF -->
+	<!--
+		Pattern to output
+			%d : date
+			%p : priority (level)
+			%c : category (where the log is from)
+			%m : message
+			%n : line_separator
+	 -->
+	<!-- Appenders -->
+	<appender name="Console" class="org.apache.log4j.ConsoleAppender">
+		<param name="Threshold" value="DEBUG"/>
+		<param name="Target" value="System.out" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%5p : %d{yyyy-MM-dd HH:mm:ss} - %c{2} (%13F:%L:%M) - %m%n" />
+		</layout>
+	</appender>
+	<appender name="Log_ToFILE" class="org.apache.log4j.DailyRollingFileAppender">
+		<param name="Threshold" value="DEBUG"/>
+		<param name="File" value="D:/99.eclipse/2.log/kt114/web.log" />
+		<param name="Append" value="true" />
+		<param name="DatePattern" value="'.'yyyy-MM-dd" />
+		<layout class="org.apache.log4j.PatternLayout">
+			<param name="ConversionPattern" value="%5p : %d{yyyy-MM-dd HH:mm:ss} - %c{2} (%13F:%L:%M) - %m%n"/>
+		</layout>
+	</appender>
+	<!--<appender name="Log_ToDB" class="org.apache.log4j.jdbc.JDBCAppender">-->
+	<appender name="Log_ToDB" class="com.cnet.crec.util.ExJdbcAppender">
+		<param name="Threshold" value="ERROR"/>
+		<param name="URL" value="jdbc:jtds:sqlserver://192.168.0.205:1433/KT114;useUnicode=false;SENDSTRINGPARAMETERSASUNICODE=false;uselobs=false;" />
+		<param name="driver" value="net.sourceforge.jtds.jdbc.Driver" />
+		<param name="user" value="sa" />
+		<param name="password" value="cnet2580" />
+		<!--<layout class="org.apache.log4j.PatternLayout">-->
+		<layout class="org.apache.log4j.EnhancedPatternLayout">
+			<param name="ConversionPattern" value="EXEC sp_InsertErrorLog '%5p', '%c{2}', '%M', '%13F:%L', '%m%n'"/>
+			<!-- param name="ConversionPattern" value="insert into tbl_error_log (log_datm, log_level, class_name, method_name, log_info, message) VALUES (getdate(),'%5p', left('%c{2}',100), left('%M',50), left('%13F:%L',100), left(replace('%m%n','''','`'),2000))" /-->
+		</layout>
+	</appender>
+
+	<!-- Application Loggers -->
+	<logger name="com.cnet.crec">
+		<level value="DEBUG" />
+	</logger>
+
+	<!-- JDBC, mybatis Log -->
+	<logger name="org.apache.ibatis">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="org.apache.tomcat.jdbc">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="com.microsoft.sqlserver.jdbc">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="net.sourceforge.jtds.jdbc">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="java.sql.Connection">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="java.sql.Statement">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="java.sql.PreparedStatement">
+		<level value="DEBUG"/>
+	</logger>
+	<logger name="java.sql.ResultSet">
+		<level value="DEBUG"/>
+	</logger>
+
+	<!-- Root Logger -->
+	<root>
+		<priority value="DEBUG"/>
+		<appender-ref ref="Console"/>
+		<appender-ref ref="Log_ToFILE"/>
+		<!--appender-ref ref="Log_ToDB"/-->
+	</root>
+
+</log4j:configuration>

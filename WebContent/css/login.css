@@ -1,0 +1,161 @@
+﻿/* Reset */
+div,dl,dt,dd,ul,ol,li,h1,h2,h3,h4,h5,form,fieldset,p,button,input{margin:0;padding:0}
+body{margin:0;padding:0;background-color:#fff;*word-break:break-all;-ms-word-break:break-all}
+body,h1,h2,h3,h4,input,button,table,select,textarea{
+	font-family: '맑은 고딕', "Malgun Gothic", tahoma, AppleGothic, sans-serif;
+	font-size: 11px;
+	line-height: 1.25em;
+	color: #333333;
+	font-style: normal;
+}
+img,fieldset,iframe{border:0 none}
+li{list-style:none}
+li{popupGuide-style:none}
+table{border-collapse:collapse}
+input,select,button,img{vertical-align:middle}
+button{border:0} button::-moz-focus-inner{border:0;padding:0;margin-top:-1px}
+a{color:#262626;text-decoration:none;cursor:pointer}
+a:hover{color:#262626;text-decoration:underline}
+hr{display:none}
+body,html{height:100%;}
+
+
+/* login  */
+.loginWrap{position:absolute;width:700px;height:456px;margin:auto;top:0;left:0;right:0;bottom:0;border:22px solid #131313;border-right:none;border-left:none}
+.loginContainer{width:100%;height:100%;background:url(../img/login/loginBg.png) no-repeat 0}
+.loginContainer h1{width:196px;height:29px;left:30px;top:26px;position:relative}
+.loginContainer .title{top:62px;position:relative;width:100%;text-align:center}
+
+.loginContents{
+	position: relative;
+	top: 160px;
+	overflow: visible;
+	margin: 0 auto;
+	background: url(../img/login/loginBox.png) no-repeat 0;
+	width: 373px;
+	height: 148px
+}
+
+.login{
+	position: relative;
+	top: 20px;
+	left: 26px
+}
+.login .id, .login .pw {display:inline-block;width:44px;height:22px;padding-right:12px;text-indent:-999px}
+.login .id {background:url(../img/login/id.png) no-repeat 0 3px}
+.login .pw {background:url(../img/login/pw.png) no-repeat 0 3px}
+
+.login dl {display:inline-block;float:left;width:228px;margin-top:2px} 
+.login dd {position:relative;height:25px;margin:0 0 5px 0;}
+span.tId, span.tPw {position:relative;display:inline-block;width:170px;height:22px;background:url(../img/login/inputBox.gif) no-repeat;top:-10px}
+.login input[type=text]{width:170px;height:22px;line-height:18px;border:none;}
+.login input[type=password]{width:170px;height:22px;line-height:18px;border:none;}
+.login p input{
+	width: 80px;
+	height: 52px;
+	margin-left: 13px;
+	cursor: pointer;
+	background: url(../img/login/loginBtn.gif) no-repeat 0;
+	border: none;
+	color: #fff;
+}
+
+
+input.loginId{background:url(../img/login/inputBox.png) no-repeat 3px !important}
+input.loginPassword{background:url(../img/login/inputBox.png) no-repeat 3px !important}
+
+.remember {
+	font-size: 11px;
+	color: #333;
+	position: relative;
+	top: 90px;
+	width: 30%;
+	margin: 0 auto;
+}
+.listUser {
+	width: 40%;
+	margin: 0 auto;
+	padding-left: 65px;
+	top: 100px;
+	position: relative;
+}
+.listUser span{font-size:11px;letter-spacing:-1px;float:left;padding-right:10px}
+.listUser span a:hover{color:#ea8184}
+
+.copy{
+	position: absolute;
+	opacity: 0.9;
+	bottom: 0px;
+	width: 100%;
+	height: 41px;
+	border: 1px solid #cececf;
+	border-left: 0;
+	border-right: 0;
+	background-color: #efefef;
+	background-image: none;
+	background-repeat: no-repeat;
+	background-position: 50%;
+	text-align: center;
+}
+
+/* login_popup_공통 */
+.topTitle{background:url(../img/login/popupTopC.gif) repeat-x 0;width:100%;height:31px}
+.topTitle .topTitleL{background:url(../img/login/popupTopL.gif) no-repeat 0;width:4px;height:31px;float:left}
+.topTitle .topTitleR{background:url(../img/login/popupTopR.gif) no-repeat 0;width:4px;height:31px;float:right}
+.topTitle h1{background:url(../img/login/pwReTopIcon.gif) no-repeat 5px;font-size:15px;padding:10px 25px;float:left;width:70%}
+.topTitle span.close a{background:url(../img/login/btnX.png) no-repeat;width:16px;height:16px;float:right;margin:8px 10px}
+.pwPopup {border:2px solid #6f6f6f;border-bottom:none;border-top:none;padding:35px 10px 20px 10px;background:#fff;}
+.popupBottom {border-bottom:2px solid #6f6f6f;width:100%;height:2px;}
+.popupBottom .popupBottomL{background:url(../img/login/popupBottomL.gif) no-repeat 0;width:4px;height:4px;float:left}
+.popupBottom .popupBottomR{background:url(../img/login/popupBottomR.gif) no-repeat 0;width:4px;height:4px;float:right}
+
+
+/* login_popup_pwReissue */
+.staff {width:80%;min-width:300px;margin:0 auto}
+
+.staffPhoto{float:left;height:40px;width:40px;padding:10px }
+.staffImfor{height:55px}
+
+.staff .staffTel {font-weight:bold;font-size:16px;line-height:25px}
+.staffName {color:#515151;font-size:22px;line-height:30px;font-weight:bold;letter-spacing:2px}
+.staffName .small{font-size:18px;line-height:30px;font-weight:bold;}
+.staffPhone {margin-top:10px}
+.staffMail{margin-bottom:14px}
+.staffPhone, .staffMail{width:100%}
+.staffPhone span, .staffMail span{display:inline-block;font-size:15px;color:#666;line-height:18px;height:18px;padding:5px}
+.staffPhone .title, .staffMail .title {background:url(../img/login/pwReText.png) no-repeat;width:42px;float:left;margin-left:65px}
+.staffPhone .title{background-position:0 8px}
+.staffMail .title{background-position:0 -18px}
+
+.bzRButtonOk{background:url(../img/login/pwReOk.png) no-repeat;width:90px;height:25px;cursor:pointer}
+
+/* login_popup_pwChange */
+.chPw {width:80%;min-width:350px;margin:0 auto;padding:10px 0 15px 0}
+.chPw .id, .chPw .pw, .chPw .pwRe, .chPw .pwRe2 {width:120px;height:22px;display:inline-block;background:url(../img/login/pwChText.png) no-repeat;float:left;}
+.chPw .id {background-position:0 3px}
+.chPw .pw {background-position:0 -24px}
+.chPw .pwRe {background-position:0 -53px}
+.chPw .pwRe2 {background-position:0 -82px}
+
+.chPw dd {height:32px;}
+.chPw .pwChId, .chPw .pwChPw {position:relative;display:inline-block;width:208px;height:22px;background:url(../img/login/inputBox2.gif) no-repeat}
+.chPw input[type=text]{width:203px;height:22px;line-height:18px;border:none;padding-left:5px}
+.chPw input[type=password]{width:203px;height:22px;line-height:18px;border:none;padding-left:5px}
+
+.pwEx {width:80%;min-width:320px;margin:0 auto;background-color:#f2f2f2}
+.pwEx ul{color:#c8c9cb;padding:10px 20px;font-size:11px}
+
+.bzRButtonSave2{background:url(../img/login/chReSave.png) no-repeat;width:90px;height:25px;cursor:pointer;margin-right:10px}
+.bzRButtonCancel{background:url(../img/login/pwReCancel.png) no-repeat;width:90px;height:25px;cursor:pointer}
+
+
+/*2016.08.18 추가입니다. */
+
+
+
+/* kms 기존 css내용 입니다. */
+/* 버튼정렬 */
+.btnWrap{width:100%;display:inline-block}
+.btnWrapLeft{float:left}
+.btnWrapRight{float:right}
+.btnWrapCenter{text-align:center}

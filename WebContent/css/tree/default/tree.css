@@ -1,0 +1,4 @@
+/* tree default.css add */
+.hide_checkbox>i.jstree-checkbox {
+	display: none;
+}

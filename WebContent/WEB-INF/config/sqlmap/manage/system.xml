@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="system">
+	<!-- 첫번째 시스템 코드 조회 -->
+	<select id="selectFirstItem" parameterType="map" resultType="map">
+		select top 1 business_code, system_code, system_name, system_ip
+		from tbl_system WITH(NOLOCK)
+		where system_rec='1'
+		order by business_code asc, system_code asc
+	</select>
+	<!-- 시스템 코드 목록 조회 -->
+	<select id="selectCodeList" parameterType="map" resultType="map">
+		select system_code,system_name,system_ip
+		from tbl_system WITH(NOLOCK)
+		where 1=1
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>	
+		<if test='system_rec!=null and system_rec!=""'>
+			and system_rec=#{system_rec}
+		</if>
+		order by system_code asc
+	</select>
+	<!-- 단일 시스템 조회 -->
+	<select id="selectItem" parameterType="map" resultType="map">
+		select system_code,business_code,system_name,system_ip,backup_ip,license_cnt,mon_port,mon_sock,system_rec		
+		from tbl_system A WITH(NOLOCK)
+		where system_code=#{system_code}
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>		
+	</select>	
+	<!-- 시스템 목록 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select system_code,business_code,system_name,system_ip,backup_ip,license_cnt,mon_port,mon_sock,system_rec
+			, (select business_name from tbl_business WITH(NOLOCK) where business_code=A.business_code) business_name
+			, (select count(*) from crec_ip_info WITH(NOLOCK) where system_code=A.system_code) license_used_cnt
+			, (case system_rec when '1' then '녹취 서버' when '2' then '백업 서버' else '기타 서버' end) system_rec_desc		
+		from tbl_system A WITH(NOLOCK)
+		where 1=1
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='system_rec!=null and system_rec!=""'>
+			and system_rec=#{system_rec}
+		</if>		
+		order by system_code asc
+	</select>	
+	<!-- 시스템 등록 -->
+	<insert id="insertSystem" parameterType="map">
+		insert into tbl_system (system_code,business_code,system_name,system_ip,backup_ip,license_cnt,system_rec)
+		values (#{system_code},#{business_code},#{system_name},#{system_ip},#{backup_ip},#{license_cnt},#{system_rec})
+	</insert>
+	<!-- 시스템 업데이트 -->
+	<update id="updateSystem" parameterType="map">
+		update tbl_system
+		<set>
+			<if test='system_name!=null and system_name!=""'>system_name=#{system_name},</if>
+			<if test='system_ip!=null and system_ip!=""'>system_ip=#{system_ip},</if>
+			<if test='backup_ip!=null'>backup_ip=#{backup_ip},</if>
+			<if test='license_cnt!=null and license_cnt!=""'>license_cnt=#{license_cnt},</if>
+			<if test='system_rec!=null and system_rec!=""'>system_rec=#{system_rec},</if>
+		</set>		
+		where system_code=#{system_code}
+	</update>
+	<!-- 시스템 삭제 -->
+	<delete id="deleteSystem" parameterType="string">
+		delete from tbl_system where system_code=#{system_code}
+	</delete>	
+</mapper>

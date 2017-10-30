@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="stat_user_dept">
+	<!-- 상담원/부서별 통계 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select *
+		from (
+			select rec_date,
+				<choose>
+					<when test='s.date_type=="DD"'>
+						left(rec_date,4) + '-' + substring(rec_date,5,2) + '-' + right(rec_date,2)
+					</when>
+					<when test='s.date_type=="MM"'>
+						left(rec_date,4) + '-' + right(rec_date,2)
+					</when>
+					<when test='s.date_type=="YY"'>
+						rec_date
+					</when>
+					<when test='s.date_type=="HH"'>
+						rec_date + '시'
+					</when>
+					<when test='s.date_type=="WW"'>
+						substring(rec_date,1,4) + '-' + substring(rec_date,5,2) + ' ' + right(rec_date,1) + '주차'
+					</when>
+					<when test='s.date_type=="WD"'>
+						case rec_date when '6' then '일'
+									  when '5' then '월'
+									  when '4' then '화'
+									  when '3' then '수'
+									  when '2' then '목'
+									  when '1' then '금'
+									  when '0' then '토'
+									  else 'X'
+					  	end
+					</when>
+				</choose>
+				as v_rec_date,
+				(case user_id when '' then '상담사 정보 없음' else user_id end) as user_id,
+				<choose>
+					<when test='s.stat_type=="US"'>
+						isnull(max(user_name),(case user_id when '' then '상담사 정보 없음' else user_id end))
+					</when>
+					<when test='s.stat_type=="DE"'>
+						isnull((select part_name from tbl_user_group WITH(NOLOCK)
+						 where business_code=left(C.user_id,2)
+						 		and bpart_code=substring(C.user_id,3,${s._part_code_size})
+						 		and mpart_code=substring(C.user_id,3+(${s._part_code_size}*1),${s._part_code_size})
+								and spart_code=substring(C.user_id,3+(${s._part_code_size}*2),${s._part_code_size})
+								and part_depth=3
+						),'비매칭(' + right(C.user_id,${s._part_code_size}) + ')')
+					</when>
+				</choose>
+				as user_name,
+				sum(tot_cnt) tot_cnt,
+				sum(tot_call_time) tot_call_time,
+				sum(tot_call_time)/sum(tot_cnt) avg_call_time,
+				sum(in_cnt) in_cnt,
+				sum(out_cnt) out_cnt,
+				sum(local_cnt) local_cnt,
+				sum(one_under_cnt) one_under_cnt,
+				sum(one_five_cnt) one_five_cnt,
+				sum(five_ten_cnt) five_ten_cnt,
+				sum(ten_over_cnt) ten_over_cnt
+			from (
+				select
+				<choose>
+					<when test='s.date_type=="DD"'>
+						A.rec_date
+					</when>
+					<when test='s.date_type=="MM"'>
+						substring(A.rec_date,1,6)
+					</when>
+					<when test='s.date_type=="YY"'>
+						substring(A.rec_date,1,4)
+					</when>
+					<when test='s.date_type=="HH"'>
+						rec_hour
+					</when>
+					<when test='s.date_type=="WW"'>
+						substring(A.rec_date,1,6)+cast(DATEPART(ww,A.rec_date)-DATEPART(ww,substring(A.rec_date,1,6)+'01')+1 as varchar)
+					</when>
+					<when test='s.date_type=="WD"'>
+						7-DATEPART(dw,A.rec_date)
+					</when>
+				</choose>
+					as rec_date,
+				<choose>
+					<when test='s.stat_type=="US"'>
+						A.user_id
+					</when>
+					<when test='s.stat_type=="DE"'>
+						(A.business_code+''+A.bpart_code+''+A.mpart_code+''+A.spart_code)
+					</when>
+				</choose>
+					as user_id,
+					A.tot_cnt,
+					A.tot_call_time,
+					A.in_cnt,
+					A.out_cnt,
+					A.local_cnt,
+					A.one_under_cnt,
+					A.one_five_cnt,
+					A.five_ten_cnt,
+					A.ten_over_cnt,
+					B.user_name
+				from tbl_stat_record A WITH(NOLOCK) left join tbl_user B WITH(NOLOCK)
+					on A.user_id=B.user_id
+				where A.rec_date between #{s.rec_date1} and #{s.rec_date2}
+					and A.rec_hour between #{s.rec_hour1} and #{s.rec_hour2}
+				<if test='s.bpart_code!=null and s.bpart_code!=""'>
+					and A.bpart_code=#{s.bpart_code}
+				</if>
+				<if test='s.mpart_code!=null and s.mpart_code!=""'>
+					and A.mpart_code=#{s.mpart_code}
+				</if>
+				<if test='s.spart_code!=null and s.spart_code!=""'>
+					and A.spart_code=#{s.spart_code}
+				</if>
+				<if test='s.user_id!=null and s.user_id!=""'>
+					and A.user_id=#{s.user_id}
+				</if>
+				<if test='s.user_name!=null and s.user_name!=""'>
+					and B.user_name=#{s.user_name}
+				</if>
+				<if test='s._user_level!=null and s._user_level!="" and s._user_level>"A"'>
+					<choose>
+						<!-- <when test='s._user_level=="B"'>
+							and A.bpart_code=#{s._bpart_code}
+						</when>	-->
+						<when test='s._user_level=="C"'>
+							and A.bpart_code=#{s._bpart_code} and A.mpart_code=#{s._mpart_code}
+						</when>
+						<when test='s._user_level=="D"'>
+							and A.bpart_code=#{s._bpart_code} and A.mpart_code=#{s._mpart_code} and A.spart_code=#{s._spart_code}
+						</when>
+						<when test='s._user_level=="E"'>
+							and A.user_id=#{s._user_id}
+						</when>
+					</choose>
+				</if>
+			) C
+			group by rec_date, user_id
+		) U
+		order by
+		<foreach collection='o' index='idx' item='item' open='' close='' separator=','>
+			${idx} ${item}
+		</foreach>
+	</select>
+</mapper>

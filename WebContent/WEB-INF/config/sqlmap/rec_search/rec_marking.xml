@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="rec_marking">
+	<!-- 마킹 리스트 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select mk_seq,regi_id,mk_name,mk_stime,mk_etime,convert(varchar(19),regi_datm,121) regi_datm,regi_ip 
+		from tbl_record_marking WITH(NOLOCK)
+		where rec_datm=#{rec_datm} and local_no=#{local_no} and rec_filename=#{rec_filename} and regi_id=#{regi_id}
+		order by mk_seq desc
+	</select>	
+	<!-- 마킹 등록 -->
+	<insert id="insertMarking" parameterType="map">
+		insert into tbl_record_marking (rec_datm,local_no,rec_filename,regi_id,mk_name,mk_stime,mk_etime,regi_datm,regi_ip)
+		values (#{rec_datm},#{local_no},#{rec_filename},#{regi_id},#{mk_name},#{mk_stime},#{mk_etime},getdate(),#{regi_ip})
+	</insert>	
+	<!-- 마킹 삭제 -->
+	<delete id="deleteMarking" parameterType="map">
+		delete from tbl_record_marking where mk_seq=#{mk_seq} and regi_id=#{regi_id}
+	</delete>
+</mapper>

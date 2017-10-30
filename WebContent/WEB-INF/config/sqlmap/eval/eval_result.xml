@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="eval_result">
+	<!-- 평가 수행 시트 보기 -->
+	<select id="sheetView" parameterType="map" resultType="map">
+		select S.*
+			, R.exam_score get_exam_score
+			, (case when R.add_score>0 then R.add_score else 0 end) get_add_score
+		from (
+			select A.sheet_code, (left(A.cate_code,2)+'00') as cate_pcode, A.cate_code, A.item_code, A.exam_code, A.exam_score, A.add_score, A.default_yn
+				, (select cate_name from tbl_eval_cate WITH(NOLOCK) where cate_code=left(A.cate_code,2)+'00' and cate_depth=1) as cate_pname
+				, D.cate_name as cate_name
+				, C.item_name as item_name
+				, B.item_name as exam_name
+			from tbl_eval_sheet_item A WITH(NOLOCK) inner join tbl_eval_item B WITH(NOLOCK)
+					on A.exam_code=B.item_code and A.cate_code=B.cate_code and B.item_depth=2
+				inner join tbl_eval_item C
+					on A.item_code=C.item_code and A.cate_code=C.cate_code and C.item_depth=1
+				inner join tbl_eval_cate D
+					on A.cate_code=D.cate_code and D.cate_depth=2
+			where A.sheet_code=#{sheet_code}
+		) S left outer join (
+			select B.result_seq, B.sheet_code, B.cate_code, B.item_code, B.exam_code, B.exam_score, B.add_score
+			from tbl_eval_event_result_list A WITH(NOLOCK) inner join tbl_eval_event_result_item B WITH(NOLOCK)
+				on A.result_seq=B.result_seq and A.event_code=B.event_code and A.sheet_code=B.sheet_code
+			where A.event_code=#{event_code} and A.sheet_code=#{sheet_code}
+			<if test='result_seq!=null and result_seq!=""'>
+				and A.result_seq=#{result_seq}
+			</if>
+			<if test='rec_seq!=null and rec_seq!=""'>
+				and A.rec_seq=#{rec_seq}
+			</if>
+		) R	on S.sheet_code=R.sheet_code and S.cate_code=R.cate_code and S.item_code=R.item_code and S.exam_code=R.exam_code
+	</select>
+
+	<!-- 평가결과 단일 조회 -->
+	<select id="selectItem" parameterType="map" resultType="map">
+		select top 1 result_seq, event_code, sheet_code, eval_order, eval_user_id, eval_user_name, assign_user_id, assign_user_name
+			, rec_seq, convert(varchar(19),rec_datm,121) as rec_datm, rec_filename, rec_keycode, user_id, user_name
+			, bpart_code, bpart_name, mpart_code, mpart_name, spart_code, mpart_name, local_no, cust_name
+			, eval_score, eval_comment, eval_text, eval_rate_code, eval_status
+			, (select event_name from tbl_eval_event WITH(NOLOCK) where event_code = A.event_code) event_name
+			, (case eval_rate_code when '0' then '일반' when '1' then '베스트' when '2' then '워스트' else '' end) eval_rate_code_desc
+			, convert(varchar(19),regi_datm,121) regi_datm
+			, convert(varchar(19),upd_datm,121) upd_datm
+		from tbl_eval_event_result_list A WITH(NOLOCK)
+		where 1=1
+		<if test='result_seq!=null and result_seq!=""'>
+			and result_seq=#{result_seq}
+		</if>
+		<if test='event_code!=null and event_code!=""'>
+			and event_code=#{event_code}
+		</if>
+		<if test='sheet_code!=null and sheet_code!=""'>
+			and sheet_code=#{sheet_code}
+		</if>
+		<if test='eval_user_id!=null and eval_user_id!=""'>
+			and eval_user_id=#{eval_user_id}
+		</if>
+		<if test='assign_user_id!=null and assign_user_id!=""'>
+			and assign_user_id=#{assign_user_id}
+		</if>
+		<if test='rec_seq!=null and rec_seq!=""'>
+			and rec_seq=#{rec_seq}
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id=#{user_id}
+		</if>
+	</select>
+
+	<!-- 평가결과 count -->
+	<select id="selectCount" parameterType="map" resultType="map">
+		select count(*) as tot_cnt, CEILING(CAST(COUNT(*) as float) / ${top_cnt}) as page_cnt
+		from tbl_eval_event_result_list A WITH(NOLOCK) inner join tbl_eval_event B WITH(NOLOCK)
+				on A.event_code=B.event_code
+			inner join tbl_eval_sheet C WITH(NOLOCK)
+				on A.sheet_code=C.sheet_code
+		where A.event_code=#{event_code}
+			<if test='eval_date1!=null and eval_date1!=""'>
+				and A.regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+			</if>
+			<if test='eval_date2!=null and eval_date2!=""'>
+				 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= A.regi_datm
+			</if>
+			<if test='eval_user_id!=null and eval_user_id!=""'>
+				and A.eval_user_id=#{eval_user_id}
+			</if>
+			<if test='bpart_code!=null and bpart_code!=""'>
+				and A.bpart_code=#{bpart_code}
+			</if>
+			<if test='mpart_code!=null and mpart_code!=""'>
+				and A.mpart_code=#{mpart_code}
+			</if>
+			<if test='spart_code!=null and spart_code!=""'>
+				and A.spart_code=#{spart_code}
+			</if>
+			<choose>
+				<when test='eval_status!=null and eval_status!=""'>
+					and A.eval_status=#{eval_status}
+				</when>
+				<when test='_user_level=="E"'>
+					and A.eval_status >= '9'
+				</when>
+			</choose>
+			<choose>
+				<when test='user_id!=null and user_id!=""'>
+					and A.user_id = #{user_id}
+				</when>
+				<when test='user_name!=null and user_name!=""'>
+					and A.user_name like #{user_name} + '%'
+				</when>
+			</choose>
+	</select>
+
+	<!-- 평가결과 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (${tot_cnt}-rownum+1) idx, *
+		from (
+			select top ${end_cnt}
+				ROW_NUMBER() OVER(order by ${sort_idx} ${sort_dir}) as rownum, *
+			from (
+				select A.result_seq, A.event_code, A.sheet_code, A.eval_order, convert(varchar,A.eval_order)+'차' eval_order_desc, A.eval_user_id, A.eval_user_name, A.assign_user_id, A.assign_user_name
+					, A.rec_seq, convert(varchar(19),A.rec_datm,121) rec_datm, convert(varchar(10),A.rec_datm,121) rec_date, A.rec_filename, A.rec_keycode
+					, A.user_id, A.user_name, A.bpart_code, A.bpart_name, A.mpart_code, A.mpart_name, A.spart_code, A.spart_name, A.local_no, A.cust_name
+					, A.eval_score, convert(varchar(10),A.regi_datm,121) eval_date, A.eval_status
+					, B.event_name, B.event_sdate, B.event_edate, B.event_status
+					, C.sheet_name, C.item_cnt, C.tot_score, C.add_score
+				from tbl_eval_event_result_list A WITH(NOLOCK) inner join tbl_eval_event B WITH(NOLOCK)
+						on A.event_code=B.event_code
+					inner join tbl_eval_sheet C WITH(NOLOCK)
+						on A.sheet_code=C.sheet_code
+				where A.event_code=#{event_code}
+					<if test='eval_date1!=null and eval_date1!=""'>
+						and A.regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+					</if>
+					<if test='eval_date2!=null and eval_date2!=""'>
+						 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= A.regi_datm
+					</if>
+					<if test='eval_user_id!=null and eval_user_id!=""'>
+						and A.eval_user_id=#{eval_user_id}
+					</if>
+					<if test='bpart_code!=null and bpart_code!=""'>
+						and A.bpart_code=#{bpart_code}
+					</if>
+					<if test='mpart_code!=null and mpart_code!=""'>
+						and A.mpart_code=#{mpart_code}
+					</if>
+					<if test='spart_code!=null and spart_code!=""'>
+						and A.spart_code=#{spart_code}
+					</if>
+					<choose>
+						<when test='_user_level=="E"'>
+							and A.eval_status >= '9'
+						</when>
+						<when test='eval_status!=null and eval_status!=""'>
+							and A.eval_status=#{eval_status}
+						</when>
+					</choose>
+					<choose>
+						<when test='(user_id!=null and user_id!="") or _user_level=="E"'>
+							and A.user_id = #{user_id}
+						</when>
+						<when test='user_name!=null and user_name!=""'>
+							and A.user_name like #{user_name} + '%'
+						</when>
+					</choose>
+			) I
+			order by ${sort_idx} ${sort_dir}
+		) U
+		where rownum between ${start_cnt} and ${end_cnt}
+	</select>
+
+	<!-- 평가결과 전체 조회 (엑셀다운로드) -->
+	<select id="selectListAll" parameterType="map" resultType="map">
+		select *
+		from (
+			select A.result_seq, A.event_code, A.sheet_code, A.eval_order, A.eval_user_id, A.eval_user_name, A.assign_user_id, A.assign_user_name
+				, A.rec_seq, convert(varchar,A.rec_datm,20) rec_date, A.rec_filename, A.rec_keycode
+				, A.user_id, A.user_name, A.bpart_code, A.bpart_name, A.mpart_code, A.mpart_name, A.spart_code, A.spart_name, A.local_no, A.cust_name
+				, A.eval_score, convert(varchar(10),A.regi_datm,121) eval_date, A.eval_status
+				, B.event_name, B.event_sdate, B.event_edate, B.event_status
+				, C.sheet_name, C.item_cnt, C.tot_score, C.add_score
+			from tbl_eval_event_result_list A WITH(NOLOCK) inner join tbl_eval_event B WITH(NOLOCK)
+					on A.event_code=B.event_code
+				inner join tbl_eval_sheet C WITH(NOLOCK)
+					on A.sheet_code=C.sheet_code
+			where A.event_code=#{event_code}
+				<if test='eval_date1!=null and eval_date1!=""'>
+					and A.regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+				</if>
+				<if test='eval_date2!=null and eval_date2!=""'>
+					 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= A.regi_datm
+				</if>
+				<if test='eval_user_id!=null and eval_user_id!=""'>
+					and A.eval_user_id=#{eval_user_id}
+				</if>
+				<if test='bpart_code!=null and bpart_code!=""'>
+					and A.bpart_code=#{bpart_code}
+				</if>
+				<if test='mpart_code!=null and mpart_code!=""'>
+					and A.mpart_code=#{mpart_code}
+				</if>
+				<if test='spart_code!=null and spart_code!=""'>
+					and A.spart_code=#{spart_code}
+				</if>
+				<choose>
+					<when test='_user_level=="E"'>
+						and A.eval_status >= '9'
+					</when>
+					<when test='eval_status!=null and eval_status!=""'>
+						and A.eval_status=#{eval_status}
+					</when>
+				</choose>
+				<choose>
+					<when test='(user_id!=null and user_id!="") or _user_level=="E"'>
+						and A.user_id = #{user_id}
+					</when>
+					<when test='user_name!=null and user_name!=""'>
+						and A.user_name like #{user_name} + '%'
+					</when>
+				</choose>
+				<if test='eval_status!=null and eval_status!=""'>
+					and A.eval_status=#{eval_status}
+				</if>
+		) U
+		order by ${sort_idx} ${sort_dir}
+	</select>
+
+	<!-- 평가결과 등록 -->
+	<insert id="insertEvalEventResultList" parameterType="map">
+		<selectKey resultType="string" keyProperty="result_seq" order="AFTER">
+			select IDENT_CURRENT('tbl_eval_event_result_list') as result_seq
+		</selectKey>
+
+		insert into tbl_eval_event_result_list (
+			event_code,sheet_code,eval_order,eval_user_id,eval_user_name,assign_user_id,assign_user_name
+			,rec_seq,rec_datm,rec_filename,rec_keycode,user_id,user_name,bpart_code,bpart_name,mpart_code,mpart_name,spart_code,spart_name,local_no,cust_name
+			,eval_score,exam_score,add_score,eval_comment,eval_text,eval_rate_code,eval_status
+			,regi_datm,regi_ip
+		)
+		select #{event_code},#{sheet_code},#{eval_order},#{eval_user_id},#{eval_user_name},#{assign_user_id}, user_id
+			,#{rec_seq},#{rec_datm},#{rec_filename},#{rec_keycode},#{user_id},#{user_name}
+			,#{bpart_code},#{bpart_name},#{mpart_code},#{mpart_name},#{spart_code},#{spart_name},#{local_no},#{cust_name}
+			,#{eval_score},#{exam_score},#{add_score},#{eval_comment},#{eval_text},#{eval_rate_code},#{eval_status}
+			,getdate(),#{regi_ip}
+		from tbl_user WITH(NOLOCK)
+		where user_id=#{eval_user_id}
+	</insert>
+
+	<!-- 평가결과 업데이트 -->
+	<update id="updateEvalEventResultList" parameterType="map">
+		update tbl_eval_event_result_list
+		<set>
+			<if test='eval_score!=null and eval_score!=""'>eval_score=#{eval_score},</if>
+			<if test='exam_score!=null and exam_score!=""'>exam_score=#{exam_score},</if>
+			<if test='add_score!=null and add_score!=""'>add_score=#{add_score},</if>
+			<if test='eval_comment!=null'>eval_comment=#{eval_comment},</if>
+			<if test='eval_text!=null'>eval_text=#{eval_text},</if>
+			<if test='eval_rate_code!=null'>eval_rate_code=#{eval_rate_code},</if>
+			<if test='eval_order!=null and eval_order!=""'>eval_order=#{eval_order},</if>
+			<if test='eval_status!=null and eval_status!=""'>eval_status=#{eval_status},</if>
+		</set>
+			,upd_datm=getdate()
+			,upd_ip=#{upd_ip}
+		where result_seq=#{result_seq} and event_code=#{event_code}
+		<if test='_user_level!=null and _user_level!="" and _user_level>"B"'>
+			<choose>
+				<when test='_user_level=="E"'>
+					and eval_user_id=#{_eval_user_id}
+				</when>
+			</choose>
+		</if>
+	</update>
+
+	<!-- 평가결과 삭제 -->
+	<delete id="deleteEvalEventResultList" parameterType="map">
+		delete from tbl_eval_event_result_list
+		where result_seq=#{result_seq}
+		<if test='_user_level!=null and _user_level!="" and _user_level>"B"'>
+			<choose>
+				<when test='_user_level=="E"'>
+					and eval_user_id=#{_eval_user_id}
+				</when>
+			</choose>
+		</if>
+	</delete>
+
+	<!-- 평가결과 상세등록 (항목별 점수) -->
+	<insert id="insertEvalEventResultItem" parameterType="map">
+		insert into tbl_eval_event_result_item (result_seq,event_code,sheet_code,cate_code,item_code,exam_code,exam_score,add_score)
+		values (#{result_seq},#{event_code},#{sheet_code},#{cate_code},#{item_code},#{exam_code},#{exam_score},#{add_score})
+	</insert>
+
+	<!-- 평가결과 상세 모두삭제 (항목별 점수) -->
+	<delete id="deleteEvalEventResultItem" parameterType="map">
+		delete from tbl_eval_event_result_item
+		where result_seq=#{result_seq}
+		<if test='event_code!=null and event_code!=""'>
+			and event_code=#{event_code}
+		</if>
+	</delete>
+
+	<!-- 이벤트내 상담원 평가차수 정보 조회 -->
+	<select id="selectEvalOrder" parameterType="string" resultType="map">
+		select isnull(max(eval_order),0) as eval_order from tbl_eval_event_result_list WITH(NOLOCK) where event_code=#{event_code} and rec_seq=#{rec_seq}
+		union all
+		select eval_order_max as eval_order from tbl_eval_event WITH(NOLOCK) where event_code=#{event_code}
+		union all
+		select eval_order from tbl_eval_event_result_list WITH(NOLOCK) where event_code=#{event_code} and user_id = #{user_id}
+	</select>
+
+	<!-- 평가 등록상태 일괄 완료처리 -->
+	<update id="updateStatus2To9" parameterType="map">
+		update tbl_eval_event_result_list
+		set eval_status='9'
+		where event_code=#{event_code} and eval_status='2'
+	</update>
+</mapper>

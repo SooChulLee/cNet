@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="softphone_hist">
+	<!-- 소프트폰 연동 데이터 등록 -->
+	<insert id="insertSoftphoneHist" parameterType="map">
+		insert into tbl_softphone_hist (req_datm,rec_date,local_no,rec_keycode,rec_store_code,rec_mystery_code)
+		values (getdate(),#{rec_date},#{local_no},#{rec_keycode},#{rec_store_code},#{rec_mystery_code})
+	</insert>
+</mapper>

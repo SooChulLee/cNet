@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hist_login">
+	<!-- 로그인 이력 count -->
+	<select id="selectCount" parameterType="map" resultType="map">
+		select count(*) as tot_cnt, CEILING(CAST(COUNT(*) as float) / ${top_cnt}) as page_cnt		
+		from tbl_login_hist WITH(NOLOCK)
+		where login_datm between convert(datetime, #{login_date1} + ' 00:00:00.000') and convert(datetime, #{login_date2} + ' 23:59:59.997')
+		<if test='login_id!=null and login_id!=""'>
+			and login_id like #{login_id} + '%'
+		</if>
+		<if test='login_name!=null and login_name!=""'>
+			and login_name like #{login_name} + '%'
+		</if>	
+		<if test='login_type!=null and login_type!=""'>
+			and login_type = #{login_type}
+		</if>	
+		<if test='login_result!=null and login_result!=""'>
+			and login_result = #{login_result}
+		</if>	
+	</select>
+	<!-- 로그인 이력 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (${tot_cnt}-rownum+1) idx, *
+		from (
+			select top ${end_cnt} 			
+				ROW_NUMBER() OVER(order by ${sort_idx} ${sort_dir}) as rownum
+				, login_type
+				, (case login_type when 'I' then '로그인' else '로그아웃' end) v_login_type
+				, convert(varchar(19),login_datm,121) login_datm
+				, login_id
+				, login_name
+				, login_ip
+				, login_result
+				, (case login_result when '1' then '성공' else '실패' end) v_login_result
+			from tbl_login_hist WITH(NOLOCK)
+			where login_datm between convert(datetime, #{login_date1} + ' 00:00:00.000') and convert(datetime, #{login_date2} + ' 23:59:59.997')	
+			<if test='login_id!=null and login_id!=""'>
+				and login_id like #{login_id} + '%'
+			</if>
+			<if test='login_name!=null and login_name!=""'>
+				and login_name like #{login_name} + '%'
+			</if>	
+			<if test='login_type!=null and login_type!=""'>
+				and login_type = #{login_type}
+			</if>	
+			<if test='login_result!=null and login_result!=""'>
+				and login_result = #{login_result}
+			</if>					
+			order by ${sort_idx} ${sort_dir}
+		) U
+		where rownum between ${start_cnt} and ${end_cnt}											
+	</select>
+	<!-- 로그인 이력 전체 조회 (엑셀다운로드) -->
+	<select id="selectListAll" parameterType="map" resultType="map">
+		select login_type
+			, (case login_type when 'I' then '로그인' else '로그아웃' end) v_login_type
+			, convert(varchar(19),login_datm,121) login_datm
+			, login_id
+			, login_name
+			, login_ip
+			, login_result
+			, (case login_result when '1' then '성공' else '실패' end) v_login_result
+		from tbl_login_hist WITH(NOLOCK)
+		where login_datm between convert(datetime, #{login_date1} + ' 00:00:00.000') and convert(datetime, #{login_date2} + ' 23:59:59.997')	
+		<if test='login_id!=null and login_id!=""'>
+			and login_id like #{login_id} + '%'
+		</if>
+		<if test='login_name!=null and login_name!=""'>
+			and login_name like #{login_name} + '%'
+		</if>	
+		<if test='login_type!=null and login_type!=""'>
+			and login_type = #{login_type}
+		</if>	
+		<if test='login_result!=null and login_result!=""'>
+			and login_result = #{login_result}
+		</if>		
+		order by ${sort_idx} ${sort_dir}									
+	</select>	
+	<!-- 로그인 이력 저장 -->
+	<insert id="insertLoginHist" parameterType="map">
+		insert into tbl_login_hist (login_datm, login_id, login_name, login_ip, login_type, login_result)
+		values (getdate(), #{login_id}, #{login_name}, #{login_ip}, #{login_type}, #{login_result})	
+	</insert>	
+</mapper>

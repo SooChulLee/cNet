@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="mon_db">
+	<!-- 메모 리스트 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select A.state,A.channel,A.system_code,A.login,A.user_id,A.user_name,A.bpart_code,A.mpart_code,A.spart_code,A.ani,A.phone,A.datetime
+			, convert(varchar,dateadd(s, DATEDIFF(s, cast(A.datetime as time), cast(GETDATE() as time)), ''),108) call_time
+			, B.system_ip,isnull(B.backup_ip,'') backup_ip
+		from crec_monitoring A WITH(NOLOCK) inner join tbl_system B WITH(NOLOCK)
+			on A.system_code=B.system_code
+		where 1=1
+		<if test='bpart_code!=null and bpart_code!=""'>
+			and A.bpart_code = #{bpart_code}
+		</if>
+		<if test='mpart_code!=null and mpart_code!=""'>
+			and A.mpart_code = #{mpart_code}
+		</if>
+		<if test='spart_code!=null and spart_code!=""'>
+			and A.spart_code = #{spart_code}
+		</if>
+		<if test='local_no!=null and local_no!=""'>
+			and A.phone = #{local_no}
+		</if>
+		<if test='_user_level!=null and _user_level!="" and _user_level>"A"'>
+			<choose>
+				<!-- <when test='_user_level=="B"'>
+					and A.bpart_code=#{_bpart_code}
+				</when>	-->
+				<when test='_user_level=="C"'>
+					and A.bpart_code=#{_bpart_code} and A.mpart_code=#{_mpart_code}
+				</when>
+				<when test='_user_level=="D"'>
+					and A.bpart_code=#{_bpart_code} and A.mpart_code=#{_mpart_code} and A.spart_code=#{_spart_code}
+				</when>
+				<when test='_user_level=="E"'>
+					and A.user_id=#{_user_id}
+				</when>
+			</choose>
+		</if>
+		order by cast(A.channel as int) asc
+	</select>
+
+	<!-- 녹취전체 건수 및 진행중 건수 조회 : 20170908 현원희 추가-->
+	<select id="selectCountList" parameterType="map" resultType="map">
+		select
+			 (select count(*) as rec_count from tbl_record where rec_date=convert(varchar(8),getdate(),112)) rec_count
+			,(select count(*) as mon_count from crec_monitoring where state='1') as mon_count
+			,convert(varchar,getdate(),20) as time
+	</select>
+
+</mapper>

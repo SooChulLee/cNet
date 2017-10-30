@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="search_config">
+	<!-- 결과 권한 체크 -->
+	<select id="selectResultPerm" parameterType="map" resultType="string">
+		select (case when sum(cnt)>0 then '1' else '0' end) perm_yn
+		from (
+			select count(*) cnt
+			from tbl_search_config WITH(NOLOCK)
+			where conf_type='R' and conf_field=#{conf_field} and user_level>=#{user_level}
+			union all
+			select count(*) cnt from tbl_search_user_config WITH(NOLOCK)
+			where conf_type='R' and user_id=#{user_id}
+				and conf_code=(select conf_code from tbl_search_config WITH(NOLOCK) where conf_type='R' and conf_field=#{conf_field})
+		) U
+	</select>
+	<!-- 조회/결과 설정 목록 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (business_code+conf_code) row_id
+			, business_code,conf_code,user_level,conf_name,conf_field,conf_value,default_used,order_used,order_no,conf_etc,use_yn
+			, (select business_name from tbl_business WITH(NOLOCK) where business_code=A.business_code) business_name
+			, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+		from tbl_search_config A WITH(NOLOCK)
+		where conf_type=#{conf_type}
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='user_level!=null and user_level!=""'>
+			<![CDATA[
+			and user_level>=#{user_level}
+			]]>
+		</if>
+		<if test='not_conf_value!=null and not_conf_value!=""'>
+			and conf_value!=#{not_conf_value}
+		</if>
+		order by order_no asc
+	</select>
+	<!-- 조회/결과 설정 등록 -->
+	<insert id="insertSearchConfig" parameterType="map">
+		insert into tbl_search_config (business_code,conf_code,user_level,conf_type,conf_name,conf_field,conf_value,default_used,order_used,order_no,conf_etc,use_yn)
+		select #{business_code}
+			, (isnull(max(conf_code),(case '${conf_type}' when 'S' then 1000 else 2000 end))+1)
+			, #{user_level}, #{conf_type}, #{conf_name}, #{conf_field}, #{conf_value}, #{default_used}, #{order_used}
+			, (isnull(max(order_no),0)+1)
+			, #{conf_etc}, #{use_yn}
+		from tbl_search_config WITH(NOLOCK)
+		where business_code=#{business_code} and conf_type=#{conf_type}
+	</insert>
+	<!-- 조회/결과 설정 업데이트 -->
+	<update id="updateSearchConfig" parameterType="map">
+		update tbl_search_config
+		<set>
+			<if test='user_level!=null and user_level!=""'>user_level=#{user_level},</if>
+			<if test='conf_name!=null and conf_name!=""'>conf_name=#{conf_name},</if>
+			<if test='conf_field!=null and conf_field!=""'>conf_field=#{conf_field},</if>
+			<if test='conf_value!=null and conf_value!=""'>conf_value=#{conf_value},</if>
+			<if test='default_used!=null and default_used!=""'>default_used=#{default_used},</if>
+			<if test='order_used!=null and order_used!=""'>order_used=#{order_used},</if>
+			<if test='order_no!=null and order_no!=""'>order_no=#{order_no},</if>
+			<if test='conf_etc!=null'>conf_etc=#{conf_etc},</if>
+			<if test='use_yn!=null and use_yn!=""'>use_yn=#{use_yn},</if>
+		</set>
+		where business_code=#{business_code} and conf_code=#{conf_code} and conf_type=#{conf_type}
+	</update>
+	<!-- 조회/결과 설정 삭제 -->
+	<delete id="deleteSearchConfig" parameterType="map">
+		delete from tbl_search_config
+		where business_code=#{business_code} and conf_code=#{conf_code} and conf_type=#{conf_type}
+	</delete>
+	<!-- 사용자별 조회/결과 설정 등록 -->
+	<insert id="insertSearchUserConfig" parameterType="map">
+		insert into tbl_search_user_config (user_id,business_code,conf_code,conf_type,order_no)
+		values (#{user_id}, #{business_code}, #{conf_code}, #{conf_type}, #{order_no})
+	</insert>
+	<!-- 사용자별 조회/결과 설정 삭제 -->
+	<delete id="deleteSearchUserConfig" parameterType="map">
+		delete from tbl_search_user_config
+		where user_id=#{user_id} and business_code=#{business_code}
+		<if test='conf_code!=null and conf_code!=""'>
+		 	and conf_code=#{conf_code}
+		</if>
+		<if test='conf_type!=null and conf_type!=""'>
+		 	and conf_type=#{conf_type}
+		</if>
+	</delete>
+</mapper>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="stat_user">
+	<!-- 상담원별 통계 > 평가점수(차수세로) -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select user_id, user_name, bpart_code, mpart_code, spart_code, bpart_name, mpart_name, spart_name, eval_order
+			, 1 tot_eval_cnt
+			, eval_score tot_eval_score, exam_score tot_exam_score, add_score tot_add_score
+			, (case eval_rate_code when '1' then 1 else 0 end) tot_best_cnt
+			, (case eval_rate_code when '2' then 1 else 0 end) tot_worst_cnt
+		from tbl_eval_event_result_list A WITH(NOLOCK)
+		where (select event_status from tbl_eval_event where event_code = A.event_code) = '5' --마감
+			and eval_status = '9' --평가완료
+			and event_code=#{event_code}
+			<if test='eval_date1!=null and eval_date1!=""'>
+				and regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+			</if>
+			<if test='eval_date2!=null and eval_date2!=""'>
+				 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= regi_datm
+			</if>
+			<if test='sheet_code!=null and sheet_code!=""'>
+				and sheet_code=#{sheet_code}
+			</if>
+			<if test='bpart_code!=null and bpart_code!=""'>
+				and bpart_code=#{bpart_code}
+			</if>
+			<if test='mpart_code!=null and mpart_code!=""'>
+				and mpart_code=#{mpart_code}
+			</if>
+			<if test='spart_code!=null and spart_code!=""'>
+				and spart_code=#{spart_code}
+			</if>
+			<if test='eval_user_name!=null and eval_user_name!=""'>
+				and eval_user_name like #{eval_user_name} + '%'
+			</if>
+			<if test='user_name!=null and user_name!=""'>
+				and user_name like #{user_name} + '%'
+			</if>
+		order by ${sort_idx} ${sort_dir}
+	</select>
+
+	<!-- 상담원별 통계 > 평가점수(차수가로) 이벤트코드 + 사용자ID + 차수 = 유일하다 -->
+	<select id="selectListAllOrder" parameterType="map" resultType="map">
+		select user_id, max(user_name) user_name, bpart_code, mpart_code, spart_code, max(bpart_name) bpart_name, max(mpart_name) mpart_name, max(spart_name) spart_name
+			, count(*) tot_eval_cnt
+				, max(cnt1) cnt1
+				, max(sum1) sum1
+			<if test='eval_order_max>1'>
+				, max(cnt2) cnt2
+				, max(sum2) sum2
+			</if>
+			<if test='eval_order_max>2'>
+				, max(cnt3) cnt3
+				, max(sum3) sum3
+			</if>
+			<if test='eval_order_max>3'>
+				, max(cnt4) cnt4
+				, max(sum4) sum4
+			</if>
+			<if test='eval_order_max>4'>
+				, max(cnt5) cnt5
+				, max(sum5) sum5
+			</if>
+			<if test='eval_order_max>5'>
+				, max(cnt6) cnt6
+				, max(sum6) sum6
+			</if>
+			<if test='eval_order_max>6'>
+				, max(cnt7) cnt7
+				, max(sum7) sum7
+			</if>
+			<if test='eval_order_max>7'>
+				, max(cnt8) cnt8
+				, max(sum8) sum8
+			</if>
+			<if test='eval_order_max>8'>
+				, max(cnt9) cnt9
+				, max(sum9) sum9
+			</if>
+			<if test='eval_order_max>9'>
+				, max(cnt10) cnt10
+				, max(sum10) sum10
+			</if>
+			<if test='eval_order_max>10'>
+				, max(cnt11) cnt11
+				, max(sum11) sum11
+			</if>
+			<if test='eval_order_max>11'>
+				, max(cnt12) cnt12
+				, max(sum12) sum12
+			</if>
+			<if test='eval_order_max>12'>
+				, max(cnt13) cnt13
+				, max(sum13) sum13
+			</if>
+			<if test='eval_order_max>14'>
+				, max(cnt14) cnt14
+				, max(sum14) sum14
+			</if>
+			<if test='eval_order_max>14'>
+				, max(cnt15) cnt15
+				, max(sum15) sum15
+			</if>
+			<if test='eval_order_max>15'>
+				, max(cnt16) cnt16
+				, max(sum16) sum16
+			</if>
+			, sum(eval_score) tot_eval_score, sum(exam_score) tot_exam_score, sum(add_score) tot_add_score
+			, sum(best_cnt) tot_best_cnt, sum(worst_cnt) tot_worst_cnt
+		from (
+			select user_id, user_name, bpart_code, mpart_code, spart_code, bpart_name, mpart_name, spart_name
+				, eval_score, exam_score, add_score
+				, case eval_rate_code when '1' then 1 else 0 end best_cnt
+				, case eval_rate_code when '2' then 1 else 0 end worst_cnt
+
+				, case eval_order when 1 then 1 else 0 end cnt1
+				, case eval_order when 1 then eval_score else 0 end sum1
+				<if test='eval_order_max>1'>
+					, case eval_order when 2 then 1 else 0 end cnt2
+					, case eval_order when 2 then eval_score else 0 end sum2
+				</if>
+				<if test='eval_order_max>2'>
+					, case eval_order when 3 then 1 else 0 end cnt3
+					, case eval_order when 3 then eval_score else 0 end sum3
+				</if>
+				<if test='eval_order_max>3'>
+					, case eval_order when 4 then 1 else 0 end cnt4
+					, case eval_order when 4 then eval_score else 0 end sum4
+				</if>
+				<if test='eval_order_max>4'>
+					, case eval_order when 5 then 1 else 0 end cnt5
+					, case eval_order when 5 then eval_score else 0 end sum5
+				</if>
+				<if test='eval_order_max>5'>
+					, case eval_order when 6 then 1 else 0 end cnt6
+					, case eval_order when 6 then eval_score else 0 end sum6
+				</if>
+				<if test='eval_order_max>6'>
+					, case eval_order when 7 then 1 else 0 end cnt7
+					, case eval_order when 7 then eval_score else 0 end sum7
+				</if>
+				<if test='eval_order_max>7'>
+					, case eval_order when 8 then 1 else 0 end cnt8
+					, case eval_order when 8 then eval_score else 0 end sum8
+				</if>
+				<if test='eval_order_max>8'>
+					, case eval_order when 9 then 1 else 0 end cnt9
+					, case eval_order when 9 then eval_score else 0 end sum9
+				</if>
+				<if test='eval_order_max>9'>
+					, case eval_order when 10 then 1 else 0 end cnt10
+					, case eval_order when 10 then eval_score else 0 end sum10
+				</if>
+				<if test='eval_order_max>10'>
+					, case eval_order when 11 then 1 else 0 end cnt11
+					, case eval_order when 11 then eval_score else 0 end sum11
+				</if>
+				<if test='eval_order_max>11'>
+					, case eval_order when 12 then 1 else 0 end cnt12
+					, case eval_order when 12 then eval_score else 0 end sum12
+				</if>
+				<if test='eval_order_max>12'>
+					, case eval_order when 13 then 1 else 0 end cnt13
+					, case eval_order when 13 then eval_score else 0 end sum13
+				</if>
+				<if test='eval_order_max>13'>
+					, case eval_order when 14 then 1 else 0 end cnt14
+					, case eval_order when 14 then eval_score else 0 end sum14
+				</if>
+				<if test='eval_order_max>14'>
+					, case eval_order when 15 then 1 else 0 end cnt15
+					, case eval_order when 15 then eval_score else 0 end sum15
+				</if>
+				<if test='eval_order_max>15'>
+					, case eval_order when 16 then 1 else 0 end cnt16
+					, case eval_order when 16 then eval_score else 0 end sum16
+				</if>
+			from tbl_eval_event_result_list A WITH(NOLOCK)
+			where (select event_status from tbl_eval_event where event_code = A.event_code) = '5' --마감
+				and eval_status = '9' --평가완료
+				and event_code=#{event_code}
+				<if test='eval_date1!=null and eval_date1!=""'>
+					and regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+				</if>
+				<if test='eval_date2!=null and eval_date2!=""'>
+					 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= regi_datm
+				</if>
+				<if test='bpart_code!=null and bpart_code!=""'>
+					and bpart_code=#{bpart_code}
+				</if>
+				<if test='mpart_code!=null and mpart_code!=""'>
+					and mpart_code=#{mpart_code}
+				</if>
+				<if test='spart_code!=null and spart_code!=""'>
+					and spart_code=#{spart_code}
+				</if>
+				<if test='eval_user_name!=null and eval_user_name!=""'>
+					and eval_user_name like #{eval_user_name} + '%'
+				</if>
+				<if test='user_name!=null and user_name!=""'>
+					and user_name like #{user_name} + '%'
+				</if>
+		) AA
+		group by user_id, bpart_code , mpart_code, spart_code
+		order by ${sort_idx} ${sort_dir}
+	</select>
+
+	<!-- 상담원별 통계 > 평가항목 -->
+	<select id="selectListItem" parameterType="map" resultType="map">
+		select A.user_id, A.user_name, A.bpart_code, A.mpart_code, A.spart_code, A.bpart_name, A.mpart_name, A.spart_name, A.eval_order
+			, A.eval_user_name, convert(varchar,A.upd_datm,2) as upd_datm
+			, A.eval_score, A.exam_score exam_score_tot, A.add_score add_score_tot, B.exam_score, B.add_score
+			, (case eval_rate_code when '1' then 1 else 0 end) best_cnt
+			, (case eval_rate_code when '2' then 1 else 0 end) worst_cnt
+			, B.item_code, B.exam_score, B.add_score
+			, 1 eval_cnt
+			, eval_comment, eval_text
+		from tbl_eval_event_result_list A WITH(NOLOCK), tbl_eval_event_result_item B WITH(NOLOCK)
+		where (select event_status from tbl_eval_event where event_code = A.event_code) = '5' --마감
+			and A.eval_status = '9' --평가완료
+			and A.event_code=#{event_code}
+			and A.result_seq = B.result_seq
+			and A.event_code = B.event_code
+			and A.sheet_code = B.sheet_code
+			<if test='eval_date1!=null and eval_date1!=""'>
+				and A.regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+			</if>
+			<if test='eval_date2!=null and eval_date2!=""'>
+				 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= A.regi_datm
+			</if>
+			<if test='bpart_code!=null and bpart_code!=""'>
+				and A.bpart_code=#{bpart_code}
+			</if>
+			<if test='mpart_code!=null and mpart_code!=""'>
+				and A.mpart_code=#{mpart_code}
+			</if>
+			<if test='spart_code!=null and spart_code!=""'>
+				and A.spart_code=#{spart_code}
+			</if>
+			<if test='eval_user_name!=null and eval_user_name!=""'>
+				and A.eval_user_name like #{eval_user_name} + '%'
+			</if>
+			<if test='user_name!=null and user_name!=""'>
+				and A.user_name like #{user_name} + '%'
+			</if>
+		--order by A.user_name, A.user_id, A.eval_order, B.item_code --이거는 중간에 이름을 바꾸면 문제가 발생 할 소지가 있다.
+		order by A.user_id, A.eval_order, B.item_code
+	</select>
+
+	<!-- 상담원별 통계 > 평가항목 타이틀 구하기 -->
+	<select id="getItem" parameterType="map" resultType="map">
+		select B.*, A.item_name
+		from tbl_eval_item A, (
+			select item_code, max(exam_score) exam_score_max, max(add_score) add_score_max
+			from tbl_eval_sheet_item
+			where sheet_code = #{sheet_code}
+			group by item_code
+		) B
+		where A.item_code=B.item_code and A.use_yn=1
+	</select>
+
+</mapper>

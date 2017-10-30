@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="hist_pass_change">
+	<!-- 비밀번호 사용횟수 조회 -->
+	<select id="selectPasswdUsedCnt" parameterType="map" resultType="int">
+		select count(*) as used_cnt		
+		from tbl_pass_change_hist WITH(NOLOCK)
+		where user_id=#{user_id} and change_pass=#{change_pass}		
+	</select>
+	<!-- 직전 비밀번호 조회 -->
+	<select id="selectPrevPasswd" parameterType="string" resultType="string">
+		select change_pass
+		from (
+			select top 2
+				ROW_NUMBER() OVER(order by change_datm desc) as rownum
+				, change_pass
+			from tbl_pass_change_hist 
+			where user_id=#{user_id} 
+			order by change_datm desc
+		) U
+		where rownum=2	
+	</select>	
+	<!-- 비밀번호 변경 이력 저장 -->
+	<insert id="insertPassChangeHist" parameterType="map">
+		insert into tbl_pass_change_hist (change_datm,change_pass,user_id,user_name,change_id,change_name,change_ip)
+		values (getdate(), #{change_pass}, #{user_id}, #{user_name}, #{change_id}, #{change_name}, #{change_ip})
+	</insert>
+</mapper>

@@ -1,0 +1,422 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="user">
+	<!-- 비밀번호 변경 업데이트 -->
+	<update id="updatePasswd" parameterType="map">
+		update tbl_user set user_pass=#{user_pass}
+			, pass_expire_date=(case when pass_chg_term=0 then '9999-99-99' else convert(varchar(10),dateadd(day, pass_chg_term, getdate()),121) end)
+			, pass_upd_date=convert(varchar(10),getdate(),121)
+		where user_id=#{user_id}
+	</update>
+	<!-- 잠금해제 (login result reset) -->
+	<delete id="unlockLoginResult" parameterType="string">
+		delete from tbl_login_result where login_id=#{user_id}
+			and login_date = (select convert(varchar(10),lock_datm,121) from tbl_user WITH(NOLOCK) where user_id=#{user_id})
+	</delete>
+	<!-- 단일 사용자 조회 -->
+	<select id="selectItem" parameterType="string" resultType="map">
+		select user_id, '' user_pass, user_name, local_no, channel_no, use_yn
+			, system_code, isnull((select system_name from tbl_system WITH(NOLOCK) where system_code = tbl_user.system_code), '') system_name
+			, user_level, user_level origin_level, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+			, pass_chg_term, (case pass_chg_term when 0 then '제한없음' else cast(pass_chg_term as varchar) + '일' end) pass_chg_term_desc
+			, pass_expire_date, pass_upd_date, isnull(user_ip,'') user_ip
+			, lock_yn, convert(varchar(19),lock_datm,121) lock_datm
+			, resign_yn, (case resign_yn when '1' then '퇴사' else '재직' end) resign_yn_desc, convert(varchar(19),resign_datm,121) resign_datm
+			, convert(varchar(19),regi_datm,121) regi_datm
+		from tbl_user WITH(NOLOCK)
+		where user_id=#{user_id}
+	</select>
+
+	<!-- 평가자 콤보박스 목록 조회 -->
+	<select id="selectEvalListCombo" parameterType="map" resultType="map">
+		select user_id, user_name
+		from tbl_user WITH(NOLOCK)
+		where eval_yn='y' and resign_yn='0' and use_yn='1'
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<!-- 관리자/시스템관리자만 모든 평가자 볼 수 있음 -->
+		<!-- if test='_user_level!=null and _user_level!="" and _user_level>="B"' -->
+		<if test='_user_level!=null and _user_level!=""'>
+			and user_id=#{_user_id}
+		</if>
+		order by user_name asc
+	</select>
+
+	<!-- 사용자 count -->
+	<select id="selectCount" parameterType="map" resultType="map">
+		select count(*) as tot_cnt, CEILING(CAST(COUNT(*) as float) / ${top_cnt}) as page_cnt
+		from tbl_user WITH(NOLOCK)
+		where 1=1
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='bpart_code!=null and bpart_code!=""'>
+			and bpart_code=#{bpart_code}
+		</if>
+		<if test='mpart_code!=null and mpart_code!=""'>
+			and mpart_code=#{mpart_code}
+		</if>
+		<if test='spart_code!=null and spart_code!=""'>
+			and spart_code=#{spart_code}
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id like #{user_id} + '%'
+		</if>
+		<if test='user_name!=null and user_name!=""'>
+			and user_name like #{user_name} + '%'
+		</if>
+		<if test='local_no!=null and local_no!=""'>
+			and local_no like #{local_no} + '%'
+		</if>
+	</select>
+
+	<!-- 사용자 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select (${tot_cnt}-rownum+1) idx, *
+		from (
+			select top ${end_cnt}
+				ROW_NUMBER() OVER(order by ${sort_idx} ${sort_dir}) as rownum
+				, user_id, '' user_pass, user_name, local_no, channel_no, use_yn
+				, system_code, isnull((select system_name from tbl_system WITH(NOLOCK) where system_code = tbl_user.system_code), '') system_name
+				, user_level, user_level origin_level, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+				, pass_chg_term, (case pass_chg_term when 0 then '제한없음' else cast(pass_chg_term as varchar) + '일' end) pass_chg_term_desc
+				, pass_expire_date, pass_upd_date, isnull(user_ip,'') user_ip
+				, lock_yn, convert(varchar(19),lock_datm,121) lock_datm
+				, resign_yn, (case resign_yn when '1' then '퇴사' else '재직' end) resign_yn_desc, convert(varchar(19),resign_datm,121) resign_datm
+				, convert(varchar(19),regi_datm,121) regi_datm, eval_yn
+			from tbl_user WITH(NOLOCK)
+			where 1=1
+			<if test='business_code!=null and business_code!=""'>
+				and business_code=#{business_code}
+			</if>
+			<if test='bpart_code!=null and bpart_code!=""'>
+				and bpart_code=#{bpart_code}
+			</if>
+			<if test='mpart_code!=null and mpart_code!=""'>
+				and mpart_code=#{mpart_code}
+			</if>
+			<if test='spart_code!=null and spart_code!=""'>
+				and spart_code=#{spart_code}
+			</if>
+			<if test='user_id!=null and user_id!=""'>
+				and user_id like #{user_id} + '%'
+			</if>
+			<if test='user_name!=null and user_name!=""'>
+				and user_name like #{user_name} + '%'
+			</if>
+			<if test='local_no!=null and local_no!=""'>
+				and local_no like #{local_no} + '%'
+			</if>
+			order by ${sort_idx} ${sort_dir}
+		) U
+		where rownum between ${start_cnt} and ${end_cnt}
+	</select>
+	<!-- 사용자 전체 조회 (엑셀다운로드) -->
+	<select id="selectListAll" parameterType="map" resultType="map">
+		select user_id, '' user_pass, user_name, local_no, channel_no, use_yn
+			, system_code, isnull((select system_name from tbl_system WITH(NOLOCK) where system_code = tbl_user.system_code), '') system_name
+			, user_level, user_level origin_level, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+			, pass_chg_term, (case pass_chg_term when 0 then '제한없음' else cast(pass_chg_term as varchar) + '일' end) pass_chg_term_desc
+			, pass_expire_date, pass_upd_date, isnull(user_ip,'') user_ip
+			, lock_yn, convert(varchar(19),lock_datm,121) lock_datm
+			, resign_yn, (case resign_yn when '1' then '퇴사' else '재직' end) resign_yn_desc, convert(varchar(19),resign_datm,121) resign_datm
+			, convert(varchar(19),regi_datm,121) regi_datm
+		from tbl_user WITH(NOLOCK)
+		where 1=1
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='bpart_code!=null and bpart_code!=""'>
+			and bpart_code=#{bpart_code}
+		</if>
+		<if test='mpart_code!=null and mpart_code!=""'>
+			and mpart_code=#{mpart_code}
+		</if>
+		<if test='spart_code!=null and spart_code!=""'>
+			and spart_code=#{spart_code}
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id like #{user_id} + '%'
+		</if>
+		<if test='user_name!=null and user_name!=""'>
+			and user_name like #{user_name} + '%'
+		</if>
+		<if test='local_no!=null and local_no!=""'>
+			and local_no like #{local_no} + '%'
+		</if>
+		order by ${sort_idx} ${sort_dir}
+	</select>
+
+	<!-- 사용자 등록 -->
+	<insert id="insertUser" parameterType="map">
+		insert into tbl_user (
+			user_id,user_pass,user_name
+			,business_code,bpart_code,mpart_code,spart_code
+			,user_level,local_no,channel_no,system_code
+			,pass_chg_term
+			,pass_expire_date
+			,pass_upd_date
+			,user_ip
+			,lock_yn,resign_yn,use_yn
+			,regi_datm,regi_ip,regi_id,eval_yn
+		)
+		select #{user_id},#{user_pass},#{user_name}
+			,#{business_code},#{bpart_code},#{mpart_code},#{spart_code}
+			,#{user_level},#{local_no},#{channel_no},#{system_code}
+			,#{pass_chg_term}
+			,case #{pass_chg_term} when '0' then '9999-12-31' else convert(varchar(10),dateadd(day,${pass_chg_term},getdate()),121) end
+			,null
+			,#{user_ip}
+			,'0','0','1'
+			,getdate(),#{regi_ip},#{regi_id},#{eval_yn}
+	</insert>
+
+	<insert id="insertCrecUser" parameterType="map">
+		insert into crec_user_info (
+			user_id,user_name,user_pass
+			,bpart_code,mpart_code,spart_code
+			,channel_no,channel_local,channel_real
+			,user_rec,user_cti,system_code
+			,user_level,visible_ok
+			,user_ip
+		)
+		select #{user_id},#{user_name},''
+			,#{bpart_code},#{mpart_code},#{spart_code}
+			,#{channel_no},#{local_no},#{local_no}
+			,'Y','Y',#{system_code}
+			,#{user_level},'Y'
+			,#{user_ip}
+	</insert>
+
+	<!-- 사용자 업데이트 -->
+	<update id="updateUser" parameterType="map">
+		update tbl_user
+		<set>
+			<if test='user_pass!=null and user_pass!=""'>user_pass=#{user_pass},pass_upd_date=convert(varchar(10),getdate(),121),</if>
+			<if test='user_name!=null and user_name!=""'>user_name=#{user_name},</if>
+			<if test='user_level!=null and user_level!=""'>user_level=#{user_level},</if>
+			<if test='local_no!=null and local_no!=""'>local_no=#{local_no},</if>
+			<if test='channel_no!=null and channel_no!=""'>channel_no=#{channel_no},</if>
+			<if test='system_code!=null and system_code!=""'>system_code=#{system_code},</if>
+			<if test='pass_chg_term!=null and pass_chg_term!=""'>pass_chg_term=#{pass_chg_term},</if>
+			<choose>
+				<when test='pass_chg_term!=null and pass_chg_term!="" and pass_chg_term=="0"'>pass_expire_date='9999-12-31',</when>
+				<when test='pass_chg_term!=null and pass_chg_term!="" and pass_chg_term!="0"'>
+					<choose>
+						<when test='user_pass!=null and user_pass!=""'>pass_expire_date=convert(varchar(10),dateadd(day,${pass_chg_term},getdate()),121),</when>
+						<otherwise>pass_expire_date=convert(varchar(10),dateadd(day,${pass_chg_term},pass_upd_date),121),</otherwise>
+					</choose>
+				</when>
+			</choose>
+			<if test='user_ip!=null and user_ip!=""'>user_ip=#{user_ip},</if>
+			<if test='resign_yn!=null and resign_yn!=""'>resign_yn=#{resign_yn},</if>
+			<if test='resign_yn!=null and resign_yn!=""'>
+				<choose>
+					<when test='resign_yn=="1"'>resign_datm=getdate(),</when>
+					<when test='resign_yn=="0"'>resign_datm=null,</when>
+				</choose>
+			</if>
+			<if test='lock_yn!=null and lock_yn!=""'>lock_yn=#{lock_yn},</if>
+			<if test='lock_yn!=null and lock_yn!=""'>
+				<choose>
+					<when test='lock_yn=="1"'>lock_datm=getdate(),</when>
+					<when test='lock_yn=="0"'>lock_datm=null, login_chk_datm=null,</when>
+				</choose>
+			</if>
+			<if test='login_yn!=null and login_yn!=""'>
+				<choose>
+					<when test='login_yn=="1"'>login_datm=getdate(), login_ip=#{login_ip}, login_chk_datm=getdate(),</when>
+					<when test='login_yn=="0"'></when>
+				</choose>
+			</if>
+			<if test='use_yn!=null and use_yn!=""'>use_yn=#{use_yn},</if>
+			<if test='eval_yn!=null and eval_yn!=""'>eval_yn=#{eval_yn},</if>
+			upd_datm=getdate(),
+			upd_ip=#{upd_ip},
+			upd_id=#{upd_id}
+		</set>
+		where user_id=#{user_id}
+	</update>
+
+	<update id="updateCrecUser" parameterType="map">
+		update crec_user_info
+		<set>
+			<if test='user_name!=null and user_name!=""'>user_name=#{user_name},</if>
+			<if test='channel_no!=null and channel_no!=""'>channel_no=#{channel_no},</if>
+			<if test='local_no!=null and local_no!=""'>channel_local=#{local_no},channel_real=#{local_no},</if>
+			<if test='system_code!=null and system_code!=""'>system_code=#{system_code},</if>
+			<if test='user_level!=null and user_level!=""'>user_level=#{user_level},</if>
+			<if test='user_ip!=null and user_ip!=""'>user_ip=#{user_ip},</if>
+		</set>
+		where user_id=#{user_id}
+	</update>
+
+	<!-- 사용자 삭제 -->
+	<delete id="deleteUser" parameterType="string">
+		delete from tbl_user where user_id=#{user_id}
+	</delete>
+	<delete id="deleteCrecUser" parameterType="string">
+		delete from crec_user_info where user_id=#{user_id}
+	</delete>
+
+
+
+	<!-- 단일 평가자 조회 -->
+	<select id="selectEvalItem" parameterType="string" resultType="map">
+		select user_id, '' user_pass, user_name, use_yn
+			, (select business_name from tbl_business WITH(NOLOCK) where business_code = tbl_user.business_code) business_name
+			, user_level, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+			, pass_chg_term, (case pass_chg_term when 0 then '제한없음' else cast(pass_chg_term as varchar) + '일' end) pass_chg_term_desc
+			, pass_expire_date, pass_upd_date
+			, lock_yn, convert(varchar(19),lock_datm,121) lock_datm
+			, resign_yn, (case resign_yn when '1' then '퇴사' else '재직' end) resign_yn_desc, convert(varchar(19),resign_datm,121) resign_datm
+			, convert(varchar(19),regi_datm,121) regi_datm
+		from tbl_user WITH(NOLOCK)
+		where user_id=#{user_id}
+	</select>
+
+	<!-- 평가자 count -->
+	<select id="selectEvalCount" parameterType="map" resultType="map">
+		select count(*) as tot_cnt, CEILING(CAST(COUNT(*) as float) / ${top_cnt}) as page_cnt
+		from tbl_user WITH(NOLOCK)
+		where eval_yn='y'
+		<if test='regi_date1!=null and regi_date1!="" and regi_date2!=null and regi_date2!=""'>
+			and regi_datm between convert(datetime, #{regi_date1} + ' 00:00:00.000') and convert(datetime, #{regi_date2} + ' 23:59:59.997')
+		</if>
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id like #{user_id} + '%'
+		</if>
+		<if test='user_name!=null and user_name!=""'>
+			and user_name like #{user_name} + '%'
+		</if>
+	</select>
+
+	<!-- 평가자 조회 -->
+	<select id="selectEvalList" parameterType="map" resultType="map">
+		select (${tot_cnt}-rownum+1) idx, U.*
+			, (select business_name from tbl_business WITH(NOLOCK) where business_code=U.business_code) business_name
+			, (select part_name from tbl_user_group where part_depth=1 and bpart_code = U.bpart_code) as bpart_name
+			, (select part_name from tbl_user_group where part_depth=2 and bpart_code = U.bpart_code and mpart_code = U.mpart_code) as mpart_name
+			, (select part_name from tbl_user_group where part_depth=3 and bpart_code = U.bpart_code and mpart_code = U.mpart_code and spart_code = U.spart_code) as spart_name
+		from (
+			select top ${end_cnt}
+				ROW_NUMBER() OVER(order by ${sort_idx} ${sort_dir}) as rownum
+				, user_id, '' user_pass, user_name, use_yn
+				, business_code, bpart_code, mpart_code, spart_code
+				, user_level, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+				, pass_chg_term, (case pass_chg_term when 0 then '제한없음' else cast(pass_chg_term as varchar) + '일' end) pass_chg_term_desc
+				, pass_expire_date, pass_upd_date
+				, lock_yn, convert(varchar(19),lock_datm,121) lock_datm
+				, resign_yn, (case resign_yn when '1' then '퇴사' else '재직' end) resign_yn_desc, convert(varchar(19),resign_datm,121) resign_datm
+				, convert(varchar(19),regi_datm,121) regi_datm
+			from tbl_user WITH(NOLOCK)
+			where eval_yn='y'
+			<if test='regi_date1!=null and regi_date1!="" and regi_date2!=null and regi_date2!=""'>
+				and regi_datm between convert(datetime, #{regi_date1} + ' 00:00:00.000') and convert(datetime, #{regi_date2} + ' 23:59:59.997')
+			</if>
+			<if test='business_code!=null and business_code!=""'>
+				and business_code=#{business_code}
+			</if>
+			<if test='user_id!=null and user_id!=""'>
+				and user_id like #{user_id} + '%'
+			</if>
+			<if test='user_name!=null and user_name!=""'>
+				and user_name like #{user_name} + '%'
+			</if>
+			order by ${sort_idx} ${sort_dir}
+		) U
+		where rownum between ${start_cnt} and ${end_cnt}
+	</select>
+
+	<!-- 평가자 전체 조회 (엑셀다운로드) -->
+	<select id="selectEvalListAll" parameterType="map" resultType="map">
+		select user_id, '' user_pass, user_name, use_yn
+			, (select business_name from tbl_business WITH(NOLOCK) where business_code = tbl_user.business_code) business_name
+			, user_level, dbo.fn_GetCodeName('USER_LEVEL',user_level) user_level_desc
+			, pass_chg_term, (case pass_chg_term when 0 then '제한없음' else cast(pass_chg_term as varchar) + '일' end) pass_chg_term_desc
+			, pass_expire_date, pass_upd_date
+			, lock_yn, convert(varchar(19),lock_datm,121) lock_datm
+			, resign_yn, (case resign_yn when '1' then '퇴사' else '재직' end) resign_yn_desc, convert(varchar(19),resign_datm,121) resign_datm
+			, convert(varchar(19),regi_datm,121) regi_datm
+		from tbl_user WITH(NOLOCK)
+		where eval_yn='y'
+		<if test='regi_date1!=null and regi_date1!="" and regi_date2!=null and regi_date2!=""'>
+			and regi_datm between convert(datetime, #{regi_date1} + ' 00:00:00.000') and convert(datetime, #{regi_date2} + ' 23:59:59.997')
+		</if>
+		<if test='business_code!=null and business_code!=""'>
+			and business_code=#{business_code}
+		</if>
+		<if test='user_id!=null and user_id!=""'>
+			and user_id like #{user_id} + '%'
+		</if>
+		<if test='user_name!=null and user_name!=""'>
+			and user_name like #{user_name} + '%'
+		</if>
+		order by ${sort_idx} ${sort_dir}
+	</select>
+
+	<!-- 평가자 등록 -->
+	<insert id="insertEvalUser" parameterType="map">
+		insert into tbl_user (
+			user_id,user_pass,user_name
+			,business_code,user_level
+			,pass_chg_term
+			,pass_expire_date
+			,pass_upd_date
+			,lock_yn,resign_yn,use_yn
+			,regi_datm,regi_ip,regi_id
+		)
+		select #{user_id},#{user_pass},#{user_name}
+			,#{business_code},#{user_level}
+			,#{pass_chg_term}
+			,case #{pass_chg_term} when '0' then '9999-12-31' else convert(varchar(10),dateadd(day,${pass_chg_term},getdate()),121) end
+			,convert(varchar(10),getdate(),121)
+			,'0','0','1'
+			,getdate(),#{regi_ip},#{regi_id}
+	</insert>
+
+	<!-- 평가자 업데이트 -->
+	<update id="updateEvalUser" parameterType="map">
+		update tbl_user
+		<set>
+			<if test='user_pass!=null and user_pass!=""'>user_pass=#{user_pass},pass_upd_date=convert(varchar(10),getdate(),121),</if>
+			<if test='user_name!=null and user_name!=""'>user_name=#{user_name},</if>
+			<if test='user_level!=null and user_level!=""'>user_level=#{user_level},</if>
+			<if test='pass_chg_term!=null and pass_chg_term!=""'>pass_chg_term=#{pass_chg_term},</if>
+			<choose>
+				<when test='pass_chg_term!=null and pass_chg_term!="" and pass_chg_term=="0"'>pass_expire_date='9999-12-31',</when>
+				<when test='pass_chg_term!=null and pass_chg_term!="" and pass_chg_term!="0"'>
+					<choose>
+						<when test='user_pass!=null and user_pass!=""'>pass_expire_date=convert(varchar(10),dateadd(day,${pass_chg_term},getdate()),121),</when>
+						<otherwise>pass_expire_date=convert(varchar(10),dateadd(day,${pass_chg_term},pass_upd_date),121),</otherwise>
+					</choose>
+				</when>
+			</choose>
+			<if test='resign_yn!=null and resign_yn!=""'>resign_yn=#{resign_yn},</if>
+			<if test='resign_yn!=null and resign_yn!=""'>
+				<choose>
+					<when test='resign_yn=="1"'>resign_datm=getdate(),</when>
+					<when test='resign_yn=="0"'>resign_datm=null,</when>
+				</choose>
+			</if>
+			<if test='lock_yn!=null and lock_yn!=""'>lock_yn=#{lock_yn},</if>
+			<if test='lock_yn!=null and lock_yn!=""'>
+				<choose>
+					<when test='lock_yn=="1"'>lock_datm=getdate(),</when>
+					<when test='lock_yn=="0"'>lock_datm=null,</when>
+				</choose>
+			</if>
+			<if test='use_yn!=null and use_yn!=""'>use_yn=#{use_yn},</if>
+			upd_datm=getdate(),
+			upd_ip=#{upd_ip},
+			upd_id=#{upd_id}
+		</set>
+		where user_id=#{user_id}
+	</update>
+
+</mapper>

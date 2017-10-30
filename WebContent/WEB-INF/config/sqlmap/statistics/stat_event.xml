@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="stat_event">
+	<!-- 이벤트별 통계 : 차수세로 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select A.*
+			, B.event_name
+			, C.sheet_name, C.item_cnt, C.tot_score, C.add_score
+		from (
+			select event_code, eval_order
+				, count(*) tot_eval_cnt
+				, sum(eval_score) tot_eval_score, sum(exam_score) tot_exam_score, sum(add_score) tot_add_score
+				, sum(case eval_rate_code when '1' then 1 else 0 end) tot_best_cnt
+				, sum(case eval_rate_code when '2' then 1 else 0 end) tot_worst_cnt
+			from tbl_eval_event_result_list A WITH(NOLOCK)
+			where eval_status = '9'
+				and event_code in (select event_code from tbl_eval_event where event_status='5')
+				<if test='eval_date1!=null and eval_date1!=""'>
+					and regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+				</if>
+				<if test='eval_date2!=null and eval_date2!=""'>
+					 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= regi_datm
+				</if>
+			<if test='event_code!=null and event_code!=""'>
+				and event_code=#{event_code}
+			</if>
+			<if test='sheet_code!=null and sheet_code!=""'>
+				and sheet_code=#{sheet_code}
+			</if>
+			<if test='eval_status!=null and eval_status!=""'>
+				and eval_status=#{eval_status}
+			</if>
+			group by event_code, eval_order
+		) A inner join tbl_eval_event B WITH(NOLOCK)
+				on A.event_code=B.event_code
+			inner join tbl_eval_sheet C WITH(NOLOCK)
+				on B.sheet_code=C.sheet_code
+		order by ${sort_idx} ${sort_dir}, ${sort_idx2} ${sort_dir2}
+	</select>
+
+	<!-- 이벤트별 통계 : 차수가로 -->
+	<select id="selectListAllOrder" parameterType="map" resultType="map">
+		select B.event_name, C.sheet_name, C.item_cnt, C.tot_score, C.add_score, U.*
+		from (
+			select event_code
+				, sum(tot_eval_cnt) tot_eval_cnt
+					, max(cnt1) cnt1
+					, max(sum1) sum1
+				<if test='eval_order_max>1'>
+					, max(cnt2) cnt2
+					, max(sum2) sum2
+				</if>
+				<if test='eval_order_max>2'>
+					, max(cnt3) cnt3
+					, max(sum3) sum3
+				</if>
+				<if test='eval_order_max>3'>
+					, max(cnt4) cnt4
+					, max(sum4) sum4
+				</if>
+				<if test='eval_order_max>4'>
+					, max(cnt5) cnt5
+					, max(sum5) sum5
+				</if>
+				<if test='eval_order_max>5'>
+					, max(cnt6) cnt6
+					, max(sum6) sum6
+				</if>
+				<if test='eval_order_max>6'>
+					, max(cnt7) cnt7
+					, max(sum7) sum7
+				</if>
+				<if test='eval_order_max>7'>
+					, max(cnt8) cnt8
+					, max(sum8) sum8
+				</if>
+				<if test='eval_order_max>8'>
+					, max(cnt9) cnt9
+					, max(sum9) sum9
+				</if>
+				<if test='eval_order_max>9'>
+					, max(cnt10) cnt10
+					, max(sum10) sum10
+				</if>
+				<if test='eval_order_max>10'>
+					, max(cnt11) cnt11
+					, max(sum11) sum11
+				</if>
+				<if test='eval_order_max>11'>
+					, max(cnt12) cnt12
+					, max(sum12) sum12
+				</if>
+				<if test='eval_order_max>12'>
+					, max(cnt13) cnt13
+					, max(sum13) sum13
+				</if>
+				<if test='eval_order_max>14'>
+					, max(cnt14) cnt14
+					, max(sum14) sum14
+				</if>
+				<if test='eval_order_max>14'>
+					, max(cnt15) cnt15
+					, max(sum15) sum15
+				</if>
+				<if test='eval_order_max>15'>
+					, max(cnt16) cnt16
+					, max(sum16) sum16
+				</if>
+				, sum(tot_eval_score) tot_eval_score, sum(tot_exam_score) tot_exam_score, sum(tot_add_score) tot_add_score
+				, sum(tot_best_cnt) tot_best_cnt, sum(tot_worst_cnt) tot_worst_cnt
+			from (
+				select event_code, eval_order
+					, count(*) tot_eval_cnt
+					, sum(eval_score) tot_eval_score, sum(exam_score) tot_exam_score, sum(add_score) tot_add_score
+					, sum(case eval_rate_code when '1' then 1 else 0 end) tot_best_cnt
+					, sum(case eval_rate_code when '2' then 1 else 0 end) tot_worst_cnt
+						, case eval_order when 1 then count(*) else 0 end cnt1
+						, case eval_order when 1 then sum(eval_score) else 0 end sum1
+					<if test='eval_order_max>1'>
+						, case eval_order when 2 then count(*) else 0 end cnt2
+						, case eval_order when 2 then sum(eval_score) else 0 end sum2
+					</if>
+					<if test='eval_order_max>2'>
+						, case eval_order when 3 then count(*) else 0 end cnt3
+						, case eval_order when 3 then sum(eval_score) else 0 end sum3
+					</if>
+					<if test='eval_order_max>3'>
+						, case eval_order when 4 then count(*) else 0 end cnt4
+						, case eval_order when 4 then sum(eval_score) else 0 end sum4
+					</if>
+					<if test='eval_order_max>4'>
+						, case eval_order when 5 then count(*) else 0 end cnt5
+						, case eval_order when 5 then sum(eval_score) else 0 end sum5
+					</if>
+					<if test='eval_order_max>5'>
+						, case eval_order when 6 then count(*) else 0 end cnt6
+						, case eval_order when 6 then sum(eval_score) else 0 end sum6
+					</if>
+					<if test='eval_order_max>6'>
+						, case eval_order when 7 then count(*) else 0 end cnt7
+						, case eval_order when 7 then sum(eval_score) else 0 end sum7
+					</if>
+					<if test='eval_order_max>7'>
+						, case eval_order when 8 then count(*) else 0 end cnt8
+						, case eval_order when 8 then sum(eval_score) else 0 end sum8
+					</if>
+					<if test='eval_order_max>8'>
+						, case eval_order when 9 then count(*) else 0 end cnt9
+						, case eval_order when 9 then sum(eval_score) else 0 end sum9
+					</if>
+					<if test='eval_order_max>9'>
+						, case eval_order when 10 then count(*) else 0 end cnt10
+						, case eval_order when 10 then sum(eval_score) else 0 end sum10
+					</if>
+					<if test='eval_order_max>10'>
+						, case eval_order when 11 then count(*) else 0 end cnt11
+						, case eval_order when 11 then sum(eval_score) else 0 end sum11
+					</if>
+					<if test='eval_order_max>11'>
+						, case eval_order when 12 then count(*) else 0 end cnt12
+						, case eval_order when 12 then sum(eval_score) else 0 end sum12
+					</if>
+					<if test='eval_order_max>12'>
+						, case eval_order when 13 then count(*) else 0 end cnt13
+						, case eval_order when 13 then sum(eval_score) else 0 end sum13
+					</if>
+					<if test='eval_order_max>13'>
+						, case eval_order when 14 then count(*) else 0 end cnt14
+						, case eval_order when 14 then sum(eval_score) else 0 end sum14
+					</if>
+					<if test='eval_order_max>14'>
+						, case eval_order when 15 then count(*) else 0 end cnt15
+						, case eval_order when 15 then sum(eval_score) else 0 end sum15
+					</if>
+					<if test='eval_order_max>15'>
+						, case eval_order when 16 then count(*) else 0 end cnt16
+						, case eval_order when 16 then sum(eval_score) else 0 end sum16
+					</if>
+				from tbl_eval_event_result_list WITH(NOLOCK)
+				where eval_status = '9'
+					and event_code in (select event_code from tbl_eval_event where event_status='5')
+					<if test='eval_date1!=null and eval_date1!=""'>
+						and regi_datm >= convert(datetime, #{eval_date1} + ' 00:00:00.000')
+					</if>
+					<if test='eval_date2!=null and eval_date2!=""'>
+						 and convert(datetime, #{eval_date2} + ' 23:59:59.997') >= regi_datm
+					</if>
+					<if test='event_code!=null and event_code!=""'>
+						and event_code=#{event_code}
+					</if>
+					<if test='sheet_code!=null and sheet_code!=""'>
+						and sheet_code=#{sheet_code}
+					</if>
+					<if test='eval_status!=null and eval_status!=""'>
+						and eval_status=#{eval_status}
+					</if>
+				group by event_code, eval_order
+			) AA
+			group by event_code
+		) U inner join tbl_eval_event B WITH(NOLOCK)
+				on U.event_code=B.event_code
+			inner join tbl_eval_sheet C WITH(NOLOCK)
+				on B.sheet_code=C.sheet_code
+		order by ${sort_idx} ${sort_dir}
+	</select>
+</mapper>

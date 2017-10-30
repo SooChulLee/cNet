@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="channel">
+	<!-- 내선번호, 아이피 중복체크 -->
+	<select id="selectDuplicateCheck" parameterType="map" resultType="string">
+		<![CDATA[
+		select case when sum(dup_num_cnt)>0 and sum(dup_ip_cnt)>0 then 'DUP_PHONE_NUM_IP'
+				   when sum(dup_num_cnt)>0 and sum(dup_ip_cnt)<1 then 'DUP_PHONE_NUM'
+				   when sum(dup_num_cnt)<1 and sum(dup_ip_cnt)>0 then 'DUP_PHONE_IP'
+				   else 'OK'
+			   end as result_code
+		from (
+			select count(*) as dup_num_cnt, 0 as dup_ip_cnt
+			from crec_ip_info WITH(NOLOCK)
+			where phone_num=#{phone_num} and phone_num!=#{ori_phone_num}
+			union all
+			select 0 as dup_num_cnt, count(*) as dup_ip_cnt
+			from crec_ip_info WITH(NOLOCK)
+			where phone_num!=#{ori_phone_num} and phone_ip=#{phone_ip}
+		) U
+		]]>
+	</select>
+	<!-- 시스템별 사용 가능한 최소 채널번호 조회 -->
+	<select id="selectUsableMinChannel" parameterType="string" resultType="string">
+		select min(A.channel) channel
+		from (
+			select (replicate('0',3-len(number)) + convert(varchar, number)) channel
+			from master..spt_values WITH(NOLOCK)
+			where type='P' and number between 1 and (select license_cnt from tbl_system WITH(NOLOCK) where system_code=#{system_code})
+		) A left join crec_ip_info B WITH(NOLOCK)
+				on A.channel=B.channel and B.system_code=#{system_code}
+		where B.phone_num is null
+	</select>
+	<!-- 시스템별 사용 가능한 채널 목록 조회 -->
+	<select id="selectUsableChannelList" parameterType="string" resultType="map">
+		select A.channel
+		from (
+			select (replicate('0',3-len(number)) + convert(varchar, number)) channel
+			from master..spt_values WITH(NOLOCK)
+			where type='P' and number between 1 and (select license_cnt from tbl_system WITH(NOLOCK) where system_code=#{system_code})
+		) A left join crec_ip_info B WITH(NOLOCK)
+				on A.channel=B.channel and B.system_code=#{system_code}
+		where B.phone_num is null
+		order by A.channel asc
+	</select>
+	<!-- 채널 목록 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select A.system_code, A.channel
+			, isnull(B.phone_num,'') phone_num
+			, isnull(B.phone_num,'') ori_phone_num
+			, isnull(B.phone_ip,'') phone_ip
+			, isnull(B.mac,'') mac
+			, isnull(B.tn_num,'') tn_num
+			, isnull(B.backup_code,'') backup_code
+			, isnull(B.backup_code,'') ori_backup_code
+			, isnull(C.system_name,'') system_name
+			, isnull(D.system_name,'') backup_name
+			, (case when B.phone_num is null then 'I' else 'U' end) act_type
+		from (
+			select #{system_code} system_code
+				, (replicate('0',3-len(number)) + convert(varchar, number)) channel
+			from master..spt_values WITH(NOLOCK)
+			where type='P' and number between 1 and (select license_cnt from tbl_system WITH(NOLOCK) where system_code=#{system_code})
+		) A left join crec_ip_info B WITH(NOLOCK)
+				on A.system_code=B.system_code and A.channel=B.channel and B.system_code=#{system_code}
+			left join tbl_system C WITH(NOLOCK)
+				on B.system_code=C.system_code and C.system_code=#{system_code}
+			left join tbl_system D WITH(NOLOCK)
+				on B.backup_code=D.system_code
+		where 1=1
+		order by ${sort_idx} ${sort_dir}
+	</select>
+	<!-- 채널 검색 목록 -->
+	<select id="selectSearchList" parameterType="map" resultType="map">
+		select A.system_code,A.channel,A.phone_num,A.phone_num as ori_phone_num,A.phone_ip,A.mac,A.tn_num
+			, isnull(A.backup_code,'') backup_code, isnull(A.backup_code,'') ori_backup_code
+			, B.system_name, C.system_name backup_name
+			, 'U' act_type
+		from crec_ip_info A WITH(NOLOCK) inner join tbl_system B WITH(NOLOCK)
+				on A.system_code=B.system_code
+			left join tbl_system C WITH(NOLOCK)
+				on A.backup_code=C.system_code
+		where 1=1
+		<if test='phone_num!=null and phone_num!=""'>
+			and A.phone_num=#{phone_num}
+		</if>
+		<if test='phone_ip!=null and phone_ip!=""'>
+			and A.phone_ip=#{phone_ip}
+		</if>
+		order by ${sort_idx} ${sort_dir}
+	</select>
+
+	<!-- 채널 등록 -->
+	<insert id="insertChannel" parameterType="map">
+		insert into crec_ip_info (phone_num,phone_ip,channel,system_code,mac,tn_num,backup_code)
+		values (#{phone_num},#{phone_ip},#{channel},#{system_code},#{mac},#{tn_num},#{backup_code})
+	</insert>
+
+	<!-- 채널 업데이트 -->
+	<update id="updateChannel" parameterType="map">
+		update crec_ip_info
+		<set>
+			<if test='phone_num!=null and phone_num!=""'>phone_num=#{phone_num},</if>
+			<if test='phone_ip!=null and phone_ip!=""'>phone_ip=#{phone_ip},</if>
+			<if test='channel!=null and channel!=""'>channel=#{channel},</if>
+			<if test='mac!=null and mac!=""'>mac=#{mac},</if>
+			<if test='tn_num!=null and tn_num!=""'>tn_num=#{tn_num},</if>
+			<if test='backup_code!=null'>backup_code=#{backup_code},</if>
+		</set>
+		where phone_num=#{ori_phone_num}
+	</update>
+
+	<!-- 채널 삭제 -->
+	<delete id="deleteChannel" parameterType="string">
+		delete from crec_ip_info where phone_num=#{phone_num}
+	</delete>
+
+	<!-- 채널정보 조회 (내선번호) -->
+	<select id="selectItemByPhoneNum" parameterType="string" resultType="map">
+				 select top 1 A.phone_num,A.phone_ip,A.channel,A.system_code
+							,B.system_ip
+				 from crec_ip_info A inner join tbl_system B
+							on A.system_code=B.system_code
+				 where A.phone_num=#{phone_num}
+	</select>
+</mapper>

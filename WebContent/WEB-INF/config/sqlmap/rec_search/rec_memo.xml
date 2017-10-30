@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="rec_memo">
+	<!-- 메모 리스트 조회 -->
+	<select id="selectList" parameterType="map" resultType="map">
+		select A.memo_seq,A.regi_id,A.regi_name,A.memo_text,convert(varchar(19),A.regi_datm,121) regi_datm,A.regi_ip
+		from tbl_record_memo A WITH(NOLOCK) inner join tbl_user B WITH(NOLOCK)
+			on A.regi_id=B.user_id
+		where A.rec_datm=#{rec_datm} and A.local_no=#{local_no} and A.rec_filename=#{rec_filename}
+		<if test='_user_level!=null and _user_level!="" and _user_level>"A"'>
+			<choose>
+				<when test='_user_level=="B"'>
+					and B.bpart_code=#{_bpart_code} and B.user_level>=#{_user_level}
+				</when>
+				<when test='_user_level=="C"'>
+					and B.bpart_code=#{_bpart_code} and B.mpart_code=#{_mpart_code} and B.user_level>=#{_user_level}
+				</when>
+				<when test='_user_level=="D"'>
+					and B.bpart_code=#{_bpart_code} and B.mpart_code=#{_mpart_code} and B.spart_code=#{_spart_code} and B.user_level>=#{_user_level}
+				</when>
+				<when test='_user_level=="E"'>
+					and A.regi_id=#{_user_id}
+				</when>
+			</choose>
+		</if>
+		order by A.memo_seq desc
+	</select>
+	<!-- 메모 등록 -->
+	<insert id="insertMemo" parameterType="map">
+		insert into tbl_record_memo (rec_datm,local_no,rec_filename,regi_id,regi_name,memo_text,regi_datm,regi_ip)
+		values (#{rec_datm},#{local_no},#{rec_filename},#{regi_id},#{regi_name},#{memo_text},getdate(),#{regi_ip})
+	</insert>
+	<!-- 메모 삭제 -->
+	<delete id="deleteMemo" parameterType="map">
+		delete from tbl_record_memo
+		where memo_seq=#{memo_seq} and rec_datm=#{rec_datm} and local_no=#{local_no} and rec_filename=#{rec_filename}
+		<if test='_user_level!=null and _user_level!="" and _user_level>"B"'>
+			and regi_id=#{regi_id}
+		</if>
+	</delete>
+	<!-- 녹취 이력에 메모 건수 업데이트 -->
+	<update id="updateMemoCnt" parameterType="map">
+		update tbl_record${dateStr}
+		<set>
+			<if test='step=="I"'>memo_cnt=isnull(memo_cnt,0)+1</if>
+			<if test='step=="D"'>memo_cnt=isnull(memo_cnt,0)-1</if>
+		</set>
+		where rec_datm=#{rec_datm} and local_no=#{local_no} and rec_filename=#{rec_filename}
+	</update>
+</mapper>
